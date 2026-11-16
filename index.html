@@ -1,0 +1,2518 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Bead Tower 琉璃珠塔</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-top: #dff4ff;
+      --bg-mid: #b8e4fc;
+      --bg-bot: #72cef8;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --card-border: rgba(255, 255, 255, 0.92);
+      --text-main: #0f172a;
+      --text-sub: #334155;
+      --accent: #0284c7;
+    }
+    html.dark-mode {
+      --bg-top: #071324;
+      --bg-mid: #0d223d;
+      --bg-bot: #15375c;
+      --card-bg: rgba(15, 23, 42, 0.85);
+      --card-border: rgba(148, 163, 184, 0.25);
+      --text-main: #f8fafc;
+      --text-sub: #cbd5e1;
+      --accent: #38bdf8;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      font-family: 'Inter', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 52%, var(--bg-bot) 100%);
+      color: var(--text-main);
+      transition: background 0.35s ease, color 0.35s ease;
+    }
+    .glass-panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 10px 28px -8px rgba(14, 116, 144, 0.20), 0 4px 10px -2px rgba(15, 23, 42, 0.06);
+    }
+    .ios-btn {
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .ios-btn:active {
+      transform: scale(0.93);
+    }
+    .phone-frame {
+      max-width: 480px;
+      margin: 0 auto;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-top: max(10px, env(safe-area-inset-top));
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    @media (min-width: 768px) {
+      .phone-frame {
+        max-width: 920px;
+        padding: 16px 22px;
+      }
+    }
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      cursor: grab;
+    }
+    #gameCanvas:active {
+      cursor: grabbing;
+    }
+    .modal-backdrop {
+      background: rgba(15, 23, 42, 0.56);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(14, 116, 144, 0.32);
+      border-radius: 999px;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+    .animate-float {
+      animation: floatSlow 3.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-frame px-3 sm:px-5">
+
+    <!-- ==================== VIEW 1: CLEAN HOME SCREEN ==================== -->
+    <div id="homeView" class="flex-1 flex flex-col justify-between py-2 gap-4">
+      <div class="flex items-center justify-end gap-2 px-1">
+        <button id="btnHomeMusic" type="button" class="ios-btn w-10 h-10 rounded-xl glass-panel flex items-center justify-center text-base" title="音樂與音效">
+          <span id="homeMusicIcon">🎵</span>
+        </button>
+        <button id="btnHomeDark" type="button" class="ios-btn w-10 h-10 rounded-xl glass-panel flex items-center justify-center text-base" title="深色模式">
+          <span id="homeDarkIcon">🌙</span>
+        </button>
+      </div>
+
+      <div class="glass-panel rounded-3xl p-6 sm:p-8 text-center relative overflow-hidden flex flex-col items-center gap-5 my-auto">
+        <div class="animate-float">
+          <canvas id="homeHeroCanvas" width="240" height="132" class="w-60 h-32 mx-auto"></canvas>
+        </div>
+
+        <div class="space-y-1.5">
+          <h1 class="text-3xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-sky-700 via-cyan-600 to-blue-700 dark:from-sky-300 dark:via-cyan-200 dark:to-blue-300 bg-clip-text text-transparent">
+            Bead Tower 琉璃珠塔
+          </h1>
+          <p id="homeProgressText" class="text-xs font-semibold opacity-70">已通關 0 / 22 關</p>
+        </div>
+
+        <div class="w-full max-w-xs space-y-2.5 pt-1">
+          <button id="btnHomePlay" type="button" class="ios-btn w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-600 text-white font-black text-base shadow-xl shadow-sky-500/30 flex items-center justify-center gap-2">
+            <span>▶</span>
+            <span id="homePlayLabel">開始遊戲</span>
+          </button>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <button id="btnHomeLevels" type="button" class="ios-btn py-2.5 px-3 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-sky-300/50 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5">
+              <span>🔢</span>
+              <span>選擇關卡</span>
+            </button>
+            <button id="btnHomeTutorial" type="button" class="ios-btn py-2.5 px-3 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-sky-300/50 dark:border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5">
+              <span>📖</span>
+              <span>遊戲規則</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="h-4"></div>
+    </div>
+
+    <!-- ==================== VIEW 2: CLEAN GAMEPLAY SCREEN ==================== -->
+    <div id="gameView" class="hidden flex-1 flex-col justify-between gap-2 min-h-0">
+      <!-- Minimalist Header -->
+      <header class="glass-panel rounded-2xl px-3 py-2 flex items-center justify-between gap-2 z-10 shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <button id="btnBackHome" type="button" class="ios-btn w-9 h-9 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/35 flex items-center justify-center text-base shrink-0" title="返回首頁">
+            🏠
+          </button>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <h2 id="levelTitle" class="font-extrabold text-sm sm:text-base tracking-tight leading-none">Level 1 / 22</h2>
+              <span id="shiftBadge" class="hidden text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-800 dark:text-fuchsia-300 border border-fuchsia-400/40 shrink-0">🌈 變色</span>
+              <span id="match3Badge" class="hidden text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-800 dark:text-rose-300 border border-rose-400/40 shrink-0">💥 三消</span>
+            </div>
+            <p id="levelSubtitle" class="text-[11px] opacity-75 font-medium mt-0.5 truncate">目標：3 顆同款成柱</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btnSkinToggle" type="button" class="ios-btn w-9 h-9 rounded-xl flex items-center justify-center bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/35 text-sm" title="切換琉璃珠造型">
+            <span>🏺</span>
+          </button>
+          <button id="btnMusicToggle" type="button" class="ios-btn w-9 h-9 rounded-xl flex items-center justify-center bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/25 text-sm" title="音樂與音效">
+            <span id="musicIcon">🎵</span>
+          </button>
+          <button id="btnDarkToggle" type="button" class="ios-btn w-9 h-9 rounded-xl flex items-center justify-center bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/25 text-sm" title="深色模式">
+            <span id="darkIcon">🌙</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Clean HUD Telemetry & Bead Color Pills -->
+      <section class="glass-panel rounded-2xl px-3 py-1.5 flex flex-col gap-1.5 text-xs z-10 shrink-0">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 sm:gap-3">
+            <span id="hudRods" class="font-bold text-xs px-2 py-0.5 rounded-md bg-slate-500/10">3 柱 (5 格)</span>
+            <span id="hudTarget" class="font-bold text-xs px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">高 3 顆</span>
+          </div>
+
+          <div class="flex items-center gap-3 ml-auto shrink-0">
+            <div class="flex items-center gap-1">
+              <span class="opacity-65 text-[11px]">步數</span>
+              <span id="hudMoves" class="font-extrabold text-sm tabular-nums">0</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <span id="hudProgressLabel" class="opacity-65 text-[11px]">完成</span>
+              <span id="hudCompleted" class="font-extrabold text-sm text-emerald-600 dark:text-emerald-400 tabular-nums">0 / 3</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Color-Shift Timer Bar (Lv.13-15, Lv.21-22) -->
+        <div id="shiftTimerContainer" class="hidden items-center gap-2 bg-fuchsia-500/10 border border-fuchsia-400/30 rounded-xl px-2.5 py-1">
+          <span class="text-[11px] font-bold text-fuchsia-800 dark:text-fuchsia-200 shrink-0">🌈 變色</span>
+          <div class="flex-1 h-2 bg-slate-300/60 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div id="shiftProgressBar" class="h-full bg-gradient-to-r from-amber-400 via-fuchsia-500 to-rose-500 transition-all duration-100" style="width: 100%"></div>
+          </div>
+          <span id="shiftCountdownText" class="text-[11px] font-extrabold tabular-nums text-fuchsia-700 dark:text-fuchsia-300 shrink-0">5.0s</span>
+        </div>
+
+        <!-- 10-Second Clear Deadline Timer Bar (Lv.22) -->
+        <div id="deadlineTimerContainer" class="hidden items-center gap-2 bg-rose-500/15 border border-rose-500/40 rounded-xl px-2.5 py-1">
+          <span class="text-[11px] font-extrabold text-rose-700 dark:text-rose-300 shrink-0">⏱️ 限時</span>
+          <div class="flex-1 h-2 bg-slate-300/60 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div id="deadlineProgressBar" class="h-full bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-600 transition-all duration-100" style="width: 100%"></div>
+          </div>
+          <span id="deadlineCountdownText" class="text-[11px] font-black tabular-nums text-rose-700 dark:text-rose-300 shrink-0">10.0s</span>
+        </div>
+
+        <!-- Bead Colors / Patterns Selector Pills -->
+        <div id="activeBeadsBar" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5"></div>
+      </section>
+
+      <!-- Pure Uncluttered Interactive Stage (60fps HTML5 Canvas) -->
+      <main class="glass-panel rounded-3xl flex-1 relative overflow-hidden flex flex-col min-h-0 shadow-inner">
+        <div id="canvasContainer" class="w-full flex-1 relative min-h-0">
+          <canvas id="gameCanvas"></canvas>
+        </div>
+      </main>
+
+      <!-- Streamlined Bottom Control Dock (5 Essential Buttons) -->
+      <footer class="glass-panel rounded-2xl px-2.5 py-2 flex items-center justify-between gap-2 z-10 shrink-0">
+        <button id="btnLevels" type="button" class="ios-btn flex-1 py-2 px-1.5 rounded-xl bg-white/75 dark:bg-slate-800/80 hover:bg-white border border-sky-200/60 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 shadow-sm">
+          <span class="text-sm sm:text-base leading-none">🔢</span>
+          <span class="text-[11px] sm:text-xs font-bold">選關</span>
+        </button>
+
+        <button id="btnUndo" type="button" class="ios-btn flex-1 py-2 px-1.5 rounded-xl bg-white/75 dark:bg-slate-800/80 hover:bg-white border border-sky-200/60 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 shadow-sm">
+          <span class="text-sm sm:text-base leading-none">↩️</span>
+          <span class="text-[11px] sm:text-xs font-bold">復原</span>
+        </button>
+
+        <button id="btnHint" type="button" class="ios-btn flex-1 py-2 px-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 dark:text-amber-200 border border-amber-400/40 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 shadow-sm">
+          <span class="text-sm sm:text-base leading-none">💡</span>
+          <span class="text-[11px] sm:text-xs font-bold">提示</span>
+        </button>
+
+        <button id="btnRestart" type="button" class="ios-btn flex-1 py-2 px-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-800 dark:text-rose-200 border border-rose-400/35 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 shadow-sm">
+          <span class="text-sm sm:text-base leading-none">🔄</span>
+          <span class="text-[11px] sm:text-xs font-bold">重來</span>
+        </button>
+
+        <button id="btnTutorial" type="button" class="ios-btn flex-1 py-2 px-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-900 dark:text-sky-200 border border-sky-400/35 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 shadow-sm">
+          <span class="text-sm sm:text-base leading-none">📖</span>
+          <span class="text-[11px] sm:text-xs font-bold">規則</span>
+        </button>
+      </footer>
+    </div>
+
+  </div>
+
+  <!-- ================= MODAL 1: LEVEL SELECT (22 LEVELS) ================= -->
+  <div id="levelModal" class="fixed inset-0 modal-backdrop z-50 hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl max-w-lg w-full max-h-[85vh] flex flex-col overflow-hidden border border-white/80">
+      <div class="px-5 py-4 border-b border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-extrabold">選擇關卡 (全 22 關)</h2>
+          <p class="text-xs opacity-75">1–12 經典排柱 ・ 13–15 單珠變色 ・ 16–22 三消計排</p>
+        </div>
+        <button id="btnCloseLevels" type="button" class="ios-btn w-8 h-8 rounded-full bg-slate-500/15 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="p-4 overflow-y-auto custom-scroll space-y-3">
+        <div class="flex items-center justify-end">
+          <button id="btnResetProgress" type="button" class="text-xs underline font-semibold text-rose-600 dark:text-rose-400">重置通關紀錄</button>
+        </div>
+        <div id="levelGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 2: GAME RULES & BEAD COLORS ================= -->
+  <div id="tutorialModal" class="fixed inset-0 modal-backdrop z-50 hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl max-w-md w-full max-h-[85vh] flex flex-col overflow-hidden border border-white/80">
+      <div class="px-5 py-4 border-b border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+        <h2 class="text-lg font-extrabold">📖 遊戲規則與珠子顏色</h2>
+        <button id="btnCloseTutorial" type="button" class="ios-btn w-8 h-8 rounded-full bg-slate-500/15 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="p-5 overflow-y-auto custom-scroll space-y-3 text-xs leading-relaxed">
+        <div class="p-3 rounded-2xl bg-sky-500/10 border border-sky-400/30">
+          <div class="font-bold text-sky-800 dark:text-sky-200 mb-1">🏛️ 第 1–12 關：經典排柱</div>
+          <p>點擊或拖曳移動銀柱頂端琉璃珠，將同款珠子排成指定高度即可過關；已排好的銀柱上方有空位仍可暫放珠子。</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-400/30">
+          <div class="font-bold text-fuchsia-800 dark:text-fuchsia-200 mb-1">🌈 第 13–15 關：單珠變色</div>
+          <p>倒數結束時場上會有一顆珠子變色，請把握時間完成各款珠柱排列。</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-amber-500/15 border border-amber-400/40">
+          <div class="font-bold text-amber-900 dark:text-amber-200 mb-1">💥 第 16–22 關：三消計排挑戰</div>
+          <ul class="list-disc pl-4 space-y-1">
+            <li><strong>Lv.16–18</strong>：直向 3 顆同款消除（目標 10 / 15 / 20 排）。</li>
+            <li><strong>Lv.19</strong>：直向與橫向皆可消除（目標 50 排）。</li>
+            <li><strong>Lv.20</strong>：直、橫、斜全向消除（目標 80 排）。</li>
+            <li><strong>Lv.21</strong>：全向消除＋單珠隨機變色（目標 100 排）。</li>
+            <li><strong>Lv.22</strong>：全向消除＋變色＋每 10 秒內必消一排（累計 100 排勝利施放煙火）。</li>
+          </ul>
+        </div>
+        <div class="p-3 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-slate-300/40 dark:border-slate-700">
+          <div class="font-bold mb-2">🎨 十款琉璃珠顏色與圖騰</div>
+          <div id="rulesBeadList" class="grid grid-cols-2 gap-1.5"></div>
+        </div>
+
+        <button id="btnStartFromTutorial" type="button" class="ios-btn w-full py-3 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold shadow-lg shadow-sky-500/25 text-sm">
+          開始遊玩
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL 3: VICTORY / TIMEOUT OVERLAY ================= -->
+  <div id="victoryModal" class="fixed inset-0 modal-backdrop z-50 hidden items-center justify-center p-4">
+    <div class="glass-panel rounded-3xl max-w-sm w-full p-6 text-center space-y-4 border border-white/80 relative overflow-hidden">
+      <div id="winEmojiBadge" class="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-amber-300 via-amber-400 to-orange-500 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/30">
+        🏆
+      </div>
+      <div>
+        <div class="text-xs font-bold uppercase tracking-widest text-sky-600 dark:text-sky-400" id="winLevelLabel">LEVEL 1 CLEARED</div>
+        <h2 id="winHeadline" class="text-2xl font-black mt-0.5">過關達成！</h2>
+        <div id="winStars" class="text-2xl tracking-widest my-1">⭐⭐⭐</div>
+        <p id="winSubMessage" class="text-xs opacity-85 hidden">🎆 煙火綻放・鞭炮齊鳴・恭喜完成全 22 關！</p>
+      </div>
+      <div class="grid grid-cols-2 gap-2.5 bg-sky-500/10 rounded-2xl p-3 text-xs">
+        <div>
+          <div class="opacity-65">紀錄</div>
+          <div id="winMoves" class="text-base font-extrabold mt-0.5">12 步</div>
+        </div>
+        <div>
+          <div class="opacity-65">下一關</div>
+          <div id="winNextSpec" class="text-xs font-bold mt-1 text-sky-700 dark:text-sky-300">Lv.2</div>
+        </div>
+      </div>
+      <div class="flex gap-2.5 pt-1">
+        <button id="btnReplayLevel" type="button" class="ios-btn flex-1 py-3 rounded-2xl bg-slate-500/15 font-bold text-xs">再玩一次</button>
+        <button id="btnNextLevel" type="button" class="ios-btn flex-[1.6] py-3 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-sm shadow-lg shadow-sky-500/30">下一關 ➔</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /********************************************************************
+     * 1. LEVEL DESIGN MATRIX (EXACTLY 22 LEVELS)
+     ********************************************************************/
+    const LEVELS = [
+      { level: 1,  mode: "classic", rods: 3, slots: 5, colors: 3, target: 3,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：3 顆同款成柱" },
+      { level: 2,  mode: "classic", rods: 4, slots: 5, colors: 3, target: 4,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：4 顆同款成柱" },
+      { level: 3,  mode: "classic", rods: 4, slots: 6, colors: 4, target: 4,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：4 顆同款成柱" },
+      { level: 4,  mode: "classic", rods: 4, slots: 7, colors: 4, target: 5,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：5 顆同款成柱" },
+      { level: 5,  mode: "classic", rods: 5, slots: 7, colors: 4, target: 5,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：5 顆同款成柱" },
+      { level: 6,  mode: "classic", rods: 5, slots: 7, colors: 5, target: 5,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：5 顆同款成柱" },
+      { level: 7,  mode: "classic", rods: 5, slots: 7, colors: 4, target: 6,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：6 顆同款成柱" },
+      { level: 8,  mode: "classic", rods: 5, slots: 8, colors: 5, target: 6,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：6 顆同款成柱" },
+      { level: 9,  mode: "classic", rods: 6, slots: 8, colors: 5, target: 6,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：6 顆同款成柱" },
+      { level: 10, mode: "classic", rods: 6, slots: 8, colors: 6, target: 6,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：6 顆同款成柱" },
+      { level: 11, mode: "classic", rods: 6, slots: 9, colors: 5, target: 7,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：7 顆同款成柱" },
+      { level: 12, mode: "classic", rods: 6, slots: 9, colors: 6, target: 7,  colorShift: false, shiftSec: 0,   dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "目標：7 顆同款成柱" },
+
+      { level: 13, mode: "classic", rods: 3, slots: 5, colors: 3, target: 3,  colorShift: true,  shiftSec: 6.0, dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "單珠變色・高 3 顆" },
+      { level: 14, mode: "classic", rods: 4, slots: 6, colors: 4, target: 4,  colorShift: true,  shiftSec: 5.8, dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "單珠變色・高 4 顆" },
+      { level: 15, mode: "classic", rods: 5, slots: 7, colors: 5, target: 5,  colorShift: true,  shiftSec: 5.5, dirs: [],              targetClears: 0,   deadlineSec: 0,  note: "單珠變色・高 5 顆" },
+
+      { level: 16, mode: "match3",  rods: 5, slots: 6, colors: 4, target: 3,  colorShift: false, shiftSec: 0,   dirs: ["V"],           targetClears: 10,  deadlineSec: 0,  note: "直排三消・目標 10 排" },
+      { level: 17, mode: "match3",  rods: 5, slots: 6, colors: 5, target: 3,  colorShift: false, shiftSec: 0,   dirs: ["V"],           targetClears: 15,  deadlineSec: 0,  note: "直排三消・目標 15 排" },
+      { level: 18, mode: "match3",  rods: 5, slots: 7, colors: 5, target: 3,  colorShift: false, shiftSec: 0,   dirs: ["V"],           targetClears: 20,  deadlineSec: 0,  note: "直排三消・目標 20 排" },
+      { level: 19, mode: "match3",  rods: 6, slots: 7, colors: 5, target: 3,  colorShift: false, shiftSec: 0,   dirs: ["V", "H"],      targetClears: 50,  deadlineSec: 0,  note: "直橫三消・目標 50 排" },
+      { level: 20, mode: "match3",  rods: 6, slots: 7, colors: 5, target: 3,  colorShift: false, shiftSec: 0,   dirs: ["V", "H", "D"], targetClears: 80,  deadlineSec: 0,  note: "直橫斜三消・目標 80 排" },
+      { level: 21, mode: "match3",  rods: 6, slots: 7, colors: 6, target: 3,  colorShift: true,  shiftSec: 5.5, dirs: ["V", "H", "D"], targetClears: 100, deadlineSec: 0,  note: "全向三消＋變色・100 排" },
+      { level: 22, mode: "match3",  rods: 6, slots: 7, colors: 6, target: 3,  colorShift: true,  shiftSec: 5.0, dirs: ["V", "H", "D"], targetClears: 100, deadlineSec: 10, note: "10秒限時＋變色・100 排" }
+    ];
+
+    /********************************************************************
+     * 2. 10 PAIWAN BEAD COLORS & PATTERNS (NO RAW PHOTO)
+     ********************************************************************/
+    const BEAD_STYLES = [
+      { id: 0, name: "土地之珠", base: "#385943", rimColor: "#f59e0b", pattern: "earth_blocks" },
+      { id: 1, name: "淚痕之珠", base: "#f5f1e6", rimColor: "#2563eb", pattern: "tears_dots" },
+      { id: 2, name: "蝴蝶之珠", base: "#1c1a1b", rimColor: "#f59e0b", pattern: "butterfly_arcs" },
+      { id: 3, name: "手腳之珠", base: "#8f4939", rimColor: "#eab308", pattern: "limbs_vertical_waves" },
+      { id: 4, name: "日光之珠", base: "#f3eee2", rimColor: "#d97706", pattern: "sunlight_waves" },
+      { id: 5, name: "眼睛之珠", base: "#221f20", rimColor: "#ea580c", pattern: "guardian_eyes" },
+      { id: 6, name: "孔雀之珠", base: "#f0ebe1", rimColor: "#0284c7", pattern: "peacock_plumes" },
+      { id: 7, name: "勇士之珠", base: "#282425", rimColor: "#dc2626", pattern: "warrior_chevrons" },
+      { id: 8, name: "橙珠",     base: "#d98a29", rimColor: "#f59e0b", pattern: "solid_orange" },
+      { id: 9, name: "綠珠",     base: "#2d7a4d", rimColor: "#10b981", pattern: "solid_green" }
+    ];
+
+    /********************************************************************
+     * 3. DYNAMIC-TEMPO WEB AUDIO SYNTHESIZER
+     ********************************************************************/
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.bgmPlaying = false;
+        this.bgmTimer = null;
+        this.noteIndex = 0;
+        this.currentLevel = 1;
+        this.beatMs = 460;
+        this.melody = [
+          { f: 523.25, b: 261.63, d: 1 }, { f: 523.25, b: 392.00, d: 1 },
+          { f: 783.99, b: 329.63, d: 1 }, { f: 783.99, b: 392.00, d: 1 },
+          { f: 880.00, b: 349.23, d: 1 }, { f: 880.00, b: 440.00, d: 1 },
+          { f: 783.99, b: 329.63, d: 2 },
+          { f: 698.46, b: 293.66, d: 1 }, { f: 698.46, b: 349.23, d: 1 },
+          { f: 659.25, b: 261.63, d: 1 }, { f: 659.25, b: 329.63, d: 1 },
+          { f: 587.33, b: 293.66, d: 1 }, { f: 587.33, b: 392.00, d: 1 },
+          { f: 523.25, b: 261.63, d: 2 },
+          { f: 783.99, b: 329.63, d: 1 }, { f: 783.99, b: 392.00, d: 1 },
+          { f: 698.46, b: 349.23, d: 1 }, { f: 698.46, b: 440.00, d: 1 },
+          { f: 659.25, b: 261.63, d: 1 }, { f: 659.25, b: 329.63, d: 1 },
+          { f: 587.33, b: 392.00, d: 2 },
+          { f: 783.99, b: 329.63, d: 1 }, { f: 783.99, b: 392.00, d: 1 },
+          { f: 698.46, b: 349.23, d: 1 }, { f: 698.46, b: 440.00, d: 1 },
+          { f: 659.25, b: 261.63, d: 1 }, { f: 659.25, b: 329.63, d: 1 },
+          { f: 587.33, b: 392.00, d: 2 },
+          { f: 523.25, b: 261.63, d: 1 }, { f: 523.25, b: 392.00, d: 1 },
+          { f: 783.99, b: 329.63, d: 1 }, { f: 783.99, b: 392.00, d: 1 },
+          { f: 880.00, b: 349.23, d: 1 }, { f: 880.00, b: 440.00, d: 1 },
+          { f: 783.99, b: 329.63, d: 2 },
+          { f: 698.46, b: 293.66, d: 1 }, { f: 698.46, b: 349.23, d: 1 },
+          { f: 659.25, b: 261.63, d: 1 }, { f: 659.25, b: 329.63, d: 1 },
+          { f: 587.33, b: 293.66, d: 1 }, { f: 587.33, b: 392.00, d: 1 },
+          { f: 523.25, b: 261.63, d: 2 }
+        ];
+      }
+
+      ensureContext() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
+      }
+
+      setLevelTempo(levelNum) {
+        this.currentLevel = Math.max(1, Math.min(22, levelNum));
+        if (this.currentLevel <= 12) {
+          this.beatMs = Math.round(460 - (this.currentLevel - 1) * 8);
+        } else if (this.currentLevel <= 15) {
+          this.beatMs = Math.round(355 - (this.currentLevel - 13) * 15);
+        } else if (this.currentLevel <= 20) {
+          this.beatMs = Math.round(310 - (this.currentLevel - 16) * 14);
+        } else {
+          this.beatMs = this.currentLevel === 21 ? 235 : 210;
+        }
+      }
+
+      startBGM() {
+        this.ensureContext();
+        if (this.bgmPlaying || this.muted || !this.ctx) return;
+        this.bgmPlaying = true;
+        this.scheduleNextNote();
+      }
+
+      stopBGM() {
+        this.bgmPlaying = false;
+        if (this.bgmTimer) {
+          clearTimeout(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+
+      toggleMute() {
+        this.ensureContext();
+        this.muted = !this.muted;
+        const icon = this.muted ? "🔇" : "🎵";
+        const m1 = document.getElementById("musicIcon");
+        const m2 = document.getElementById("homeMusicIcon");
+        if (m1) m1.textContent = icon;
+        if (m2) m2.textContent = icon;
+        if (this.muted) this.stopBGM();
+        else {
+          this.startBGM();
+          this.playTap(660);
+        }
+      }
+
+      scheduleNextNote() {
+        if (!this.bgmPlaying || this.muted || !this.ctx) return;
+        const item = this.melody[this.noteIndex % this.melody.length];
+        this.noteIndex++;
+
+        const now = this.ctx.currentTime;
+        const noteDurSec = (item.d * this.beatMs) / 1000;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(item.f, now);
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.042, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + Math.max(0.14, noteDurSec * 0.95));
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + Math.max(0.16, noteDurSec));
+
+        const bassOsc = this.ctx.createOscillator();
+        const bassGain = this.ctx.createGain();
+        bassOsc.type = "triangle";
+        bassOsc.frequency.setValueAtTime(item.b, now);
+        bassGain.gain.setValueAtTime(0.001, now);
+        bassGain.gain.linearRampToValueAtTime(this.currentLevel >= 16 ? 0.026 : 0.018, now + 0.02);
+        bassGain.gain.exponentialRampToValueAtTime(0.0005, now + Math.max(0.14, noteDurSec * 0.95));
+        bassOsc.connect(bassGain);
+        bassGain.connect(this.ctx.destination);
+        bassOsc.start(now);
+        bassOsc.stop(now + Math.max(0.16, noteDurSec));
+
+        if (this.currentLevel >= 13) {
+          const tickOsc = this.ctx.createOscillator();
+          const tickGain = this.ctx.createGain();
+          tickOsc.type = this.currentLevel >= 16 ? "square" : "sine";
+          tickOsc.frequency.setValueAtTime(this.currentLevel >= 21 ? 1480 : 1100, now);
+          tickOsc.frequency.exponentialRampToValueAtTime(420, now + 0.035);
+          tickGain.gain.setValueAtTime(this.currentLevel >= 21 ? 0.018 : 0.01, now);
+          tickGain.gain.exponentialRampToValueAtTime(0.0004, now + 0.04);
+          tickOsc.connect(tickGain);
+          tickGain.connect(this.ctx.destination);
+          tickOsc.start(now);
+          tickOsc.stop(now + 0.045);
+        }
+
+        this.bgmTimer = setTimeout(() => this.scheduleNextNote(), item.d * this.beatMs);
+      }
+
+      playPick() {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(540, now);
+        osc.frequency.exponentialRampToValueAtTime(820, now + 0.085);
+        gain.gain.setValueAtTime(0.11, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.095);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+        this.haptic(10);
+      }
+
+      playDrop() {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(1020, now);
+        osc.frequency.exponentialRampToValueAtTime(440, now + 0.11);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.13);
+        this.haptic(18);
+      }
+
+      playMatchClear(combo = 1) {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const base = 523.25 * Math.pow(1.12, Math.min(combo - 1, 5));
+        [1, 1.25, 1.5].forEach((mult, i) => {
+          const now = this.ctx.currentTime + i * 0.045;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(base * mult, now);
+          gain.gain.setValueAtTime(0.13, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.24);
+        });
+        this.haptic([20, 30, 20]);
+      }
+
+      playColorShift() {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.exponentialRampToValueAtTime(990, now + 0.16);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.21);
+      }
+
+      playColumnLock() {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.06;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        });
+        this.haptic([25, 40, 35]);
+      }
+
+      playWinFanfare() {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, idx) => {
+          const now = this.ctx.currentTime + idx * 0.08;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.58);
+        });
+        this.haptic([40, 50, 60]);
+      }
+
+      playFirecrackersAndCheer() {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+
+        for (let i = 0; i < 18; i++) {
+          const delay = i * 0.11 + Math.random() * 0.06;
+          const start = this.ctx.currentTime + delay;
+          const bufferSize = this.ctx.sampleRate * 0.09;
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let j = 0; j < bufferSize; j++) {
+            data[j] = (Math.random() * 2 - 1) * Math.exp(-j / (this.ctx.sampleRate * 0.018));
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(900 + Math.random() * 1800, start);
+
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.28, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.085);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          noise.start(start);
+        }
+
+        const cheerDur = 2.4;
+        const cheerBufSize = Math.floor(this.ctx.sampleRate * cheerDur);
+        const cheerBuf = this.ctx.createBuffer(1, cheerBufSize, this.ctx.sampleRate);
+        const cData = cheerBuf.getChannelData(0);
+        let b0 = 0, b1 = 0, b2 = 0;
+        for (let i = 0; i < cheerBufSize; i++) {
+          const white = Math.random() * 2 - 1;
+          b0 = 0.997 * b0 + white * 0.029;
+          b1 = 0.985 * b1 + white * 0.032;
+          b2 = 0.950 * b2 + white * 0.048;
+          cData[i] = (b0 + b1 + b2) * 0.5;
+        }
+        const cheerSrc = this.ctx.createBufferSource();
+        cheerSrc.buffer = cheerBuf;
+
+        const cheerFilter = this.ctx.createBiquadFilter();
+        cheerFilter.type = "bandpass";
+        cheerFilter.frequency.setValueAtTime(1100, this.ctx.currentTime);
+        cheerFilter.Q.setValueAtTime(0.8, this.ctx.currentTime);
+
+        const cheerGain = this.ctx.createGain();
+        const now = this.ctx.currentTime;
+        cheerGain.gain.setValueAtTime(0.001, now);
+        cheerGain.gain.linearRampToValueAtTime(0.22, now + 0.45);
+        cheerGain.gain.setValueAtTime(0.20, now + 1.4);
+        cheerGain.gain.exponentialRampToValueAtTime(0.001, now + cheerDur);
+
+        cheerSrc.connect(cheerFilter);
+        cheerFilter.connect(cheerGain);
+        cheerGain.connect(this.ctx.destination);
+        cheerSrc.start(now);
+
+        this.playWinFanfare();
+        this.haptic([60, 40, 80, 40, 120]);
+      }
+
+      playError() {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(190, now);
+        osc.frequency.linearRampToValueAtTime(140, now + 0.14);
+        gain.gain.setValueAtTime(0.07, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      }
+
+      playTap(freq = 600) {
+        if (this.muted) return;
+        this.ensureContext();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.07);
+      }
+
+      haptic(pattern) {
+        try {
+          if (navigator.vibrate) navigator.vibrate(pattern);
+        } catch (e) {}
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /********************************************************************
+     * 4. GAME STATE, VIEW SWITCHER, MATCH-3 ENGINE & COLOR-SHIFTING
+     ********************************************************************/
+    const state = {
+      view: "home",
+      currentLevelIdx: 0,
+      rods: [],
+      selectedRod: null,
+      moves: 0,
+      clearsCount: 0,
+      history: [],
+      visualMode: 1, // 1 = 排灣筒珠, 0 = 排灣球珠, 2 = 純色晶球
+      highlightColorId: null,
+      darkMode: false,
+      animatingBead: null,
+      landingBounce: null,
+      dragging: null,
+      particles: [],
+      bubbles: [],
+      completedRods: new Set(),
+      clearedLevels: {},
+      shakeRod: null,
+      shakeTime: 0,
+      hintPair: null,
+      levelWon: false,
+      levelLost: false,
+      cascading: false,
+      cascadeTimer: null,
+      nextShiftTarget: null,
+      shiftElapsedMs: 0,
+      deadlineElapsedMs: 0,
+      lastFrameTime: 0
+    };
+
+    try {
+      const saved = localStorage.getItem("bead_tower_progress_v1");
+      if (saved) state.clearedLevels = JSON.parse(saved);
+    } catch (e) {}
+
+    function saveProgress() {
+      try {
+        localStorage.setItem("bead_tower_progress_v1", JSON.stringify(state.clearedLevels));
+      } catch (e) {}
+    }
+
+    function isAnyModalOpen() {
+      return ["levelModal", "tutorialModal", "victoryModal"].some(id => {
+        const el = document.getElementById(id);
+        return el && !el.classList.contains("hidden");
+      });
+    }
+
+    function showHomeView() {
+      state.view = "home";
+      if (state.cascadeTimer) clearTimeout(state.cascadeTimer);
+      state.cascading = false;
+      document.getElementById("homeView").classList.remove("hidden");
+      document.getElementById("homeView").classList.add("flex");
+      document.getElementById("gameView").classList.add("hidden");
+      document.getElementById("gameView").classList.remove("flex");
+      updateHomeSummary();
+    }
+
+    function showGameView(levelIdx = null) {
+      state.view = "game";
+      document.getElementById("homeView").classList.add("hidden");
+      document.getElementById("homeView").classList.remove("flex");
+      document.getElementById("gameView").classList.remove("hidden");
+      document.getElementById("gameView").classList.add("flex");
+      if (levelIdx !== null) initLevel(levelIdx);
+      setTimeout(() => resizeCanvas(), 20);
+    }
+
+    function updateHomeSummary() {
+      const clearedCount = Object.keys(state.clearedLevels).length;
+      const progEl = document.getElementById("homeProgressText");
+      if (progEl) progEl.textContent = `已通關 ${clearedCount} / 22 關`;
+
+      let nextLv = 0;
+      for (let i = 0; i < LEVELS.length; i++) {
+        if (!state.clearedLevels[LEVELS[i].level]) {
+          nextLv = i;
+          break;
+        }
+      }
+      const playLbl = document.getElementById("homePlayLabel");
+      if (playLbl) playLbl.textContent = clearedCount > 0 ? `繼續第 ${LEVELS[nextLv].level} 關` : "開始遊戲";
+      state.suggestedHomeLevel = nextLv;
+    }
+
+    function initLevel(levelIdx) {
+      if (state.cascadeTimer) clearTimeout(state.cascadeTimer);
+      state.currentLevelIdx = Math.max(0, Math.min(LEVELS.length - 1, levelIdx));
+      const cfg = LEVELS[state.currentLevelIdx];
+
+      state.selectedRod = null;
+      state.dragging = null;
+      state.moves = 0;
+      state.clearsCount = 0;
+      state.history = [];
+      state.animatingBead = null;
+      state.landingBounce = null;
+      state.completedRods.clear();
+      state.hintPair = null;
+      state.highlightColorId = null;
+      state.levelWon = false;
+      state.levelLost = false;
+      state.cascading = false;
+      state.shiftElapsedMs = 0;
+      state.deadlineElapsedMs = 0;
+      state.nextShiftTarget = null;
+
+      if (cfg.mode === "match3") {
+        let rods = Array.from({ length: cfg.rods }, () => []);
+        const initHeight = Math.max(3, cfg.slots - 2);
+        for (let r = 0; r < cfg.rods; r++) {
+          for (let s = 0; s < initHeight; s++) {
+            rods[r].push(pickNonMatchingColor(rods, r, s, cfg.colors, cfg.dirs));
+          }
+        }
+        state.rods = rods;
+        ensureMatch3Playable();
+        if (cfg.colorShift) scheduleRandomSingleBeadShift();
+      } else {
+        const allBeads = [];
+        for (let c = 0; c < cfg.colors; c++) {
+          for (let h = 0; h < cfg.target; h++) allBeads.push(c);
+        }
+
+        let rods = [];
+        let attempts = 0;
+        while (attempts < 40) {
+          attempts++;
+          for (let i = allBeads.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [allBeads[i], allBeads[j]] = [allBeads[j], allBeads[i]];
+          }
+
+          rods = Array.from({ length: cfg.rods }, () => []);
+          let idx = 0;
+          const activeRods = cfg.rods > cfg.colors ? cfg.colors : cfg.rods;
+          for (let r = 0; r < activeRods; r++) {
+            for (let h = 0; h < cfg.target; h++) {
+              if (idx < allBeads.length) rods[r].push(allBeads[idx++]);
+            }
+          }
+
+          if (!rods.some(r => r.length === cfg.target && r.every(b => b === r[0]))) break;
+        }
+
+        state.rods = rods;
+        updateCompletedSet();
+        if (cfg.colorShift) scheduleBalancedSingleBeadShift();
+      }
+
+      sound.setLevelTempo(cfg.level);
+      updateHUD();
+    }
+
+    function pickNonMatchingColor(rods, r, s, numColors, dirs) {
+      const candidates = [];
+      for (let c = 0; c < numColors; c++) candidates.push(c);
+      for (let i = candidates.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+      }
+      for (const c of candidates) {
+        let formsMatch = false;
+        if (dirs.includes("V") && s >= 2 && rods[r][s - 1] === c && rods[r][s - 2] === c) formsMatch = true;
+        if (dirs.includes("H") && r >= 2 && rods[r - 1][s] === c && rods[r - 2][s] === c) formsMatch = true;
+        if (dirs.includes("D")) {
+          if (r >= 2 && s >= 2 && rods[r - 1][s - 1] === c && rods[r - 2][s - 2] === c) formsMatch = true;
+          if (r >= 2 && s + 2 < rods[r - 2].length && rods[r - 1][s + 1] === c && rods[r - 2][s + 2] === c) formsMatch = true;
+        }
+        if (!formsMatch) return c;
+      }
+      return candidates[0];
+    }
+
+    function findMatch3Groups(rods, dirs) {
+      const numRods = rods.length;
+      const groups = [];
+      const visitedKeys = new Set();
+
+      const addLineGroup = (coords) => {
+        if (coords.length < 3) return;
+        const key = coords.map(([r, s]) => `${r},${s}`).sort().join("|");
+        if (!visitedKeys.has(key)) {
+          visitedKeys.add(key);
+          groups.push(coords);
+        }
+      };
+
+      const scanRay = (startR, startS, dr, ds) => {
+        const c = rods[startR] && rods[startR][startS];
+        if (c === undefined) return;
+        const line = [[startR, startS]];
+        let nr = startR + dr;
+        let ns = startS + ds;
+        while (nr >= 0 && nr < numRods && rods[nr] && rods[nr][ns] === c) {
+          line.push([nr, ns]);
+          nr += dr;
+          ns += ds;
+        }
+        if (line.length >= 3) {
+          const prevR = startR - dr;
+          const prevS = startS - ds;
+          if (!(prevR >= 0 && prevR < numRods && rods[prevR] && rods[prevR][prevS] === c)) {
+            addLineGroup(line);
+          }
+        }
+      };
+
+      for (let r = 0; r < numRods; r++) {
+        for (let s = 0; s < rods[r].length; s++) {
+          if (dirs.includes("V")) scanRay(r, s, 0, 1);
+          if (dirs.includes("H")) scanRay(r, s, 1, 0);
+          if (dirs.includes("D")) {
+            scanRay(r, s, 1, 1);
+            scanRay(r, s, 1, -1);
+          }
+        }
+      }
+      return groups;
+    }
+
+    function resolveMatch3Cascade(combo = 1) {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (cfg.mode !== "match3" || state.levelWon || state.levelLost) {
+        state.cascading = false;
+        return;
+      }
+
+      const groups = findMatch3Groups(state.rods, cfg.dirs);
+      if (groups.length > 0) {
+        state.cascading = true;
+        const toRemove = new Set();
+        groups.forEach(grp => grp.forEach(([r, s]) => toRemove.add(`${r},${s}`)));
+
+        groups.forEach(grp => {
+          grp.forEach(([r, s]) => {
+            const pos = getBeadCoords(r, s);
+            const colId = state.rods[r][s];
+            const style = BEAD_STYLES[colId % BEAD_STYLES.length];
+            spawnParticles(pos.x, pos.y, style.rimColor, 14);
+          });
+        });
+
+        for (let r = 0; r < cfg.rods; r++) {
+          state.rods[r] = state.rods[r].filter((_, s) => !toRemove.has(`${r},${s}`));
+        }
+
+        state.clearsCount += groups.length;
+        state.deadlineElapsedMs = 0;
+        sound.playMatchClear(combo);
+        updateHUD();
+
+        if (state.clearsCount >= cfg.targetClears) {
+          state.cascading = false;
+          checkLevelWin();
+          return;
+        }
+
+        state.cascadeTimer = setTimeout(() => {
+          replenishMatch3Board();
+          resolveMatch3Cascade(combo + 1);
+        }, 240);
+      } else {
+        replenishMatch3Board();
+        const postGroups = findMatch3Groups(state.rods, cfg.dirs);
+        if (postGroups.length > 0) {
+          state.cascadeTimer = setTimeout(() => resolveMatch3Cascade(combo + 1), 220);
+        } else {
+          state.cascading = false;
+          ensureMatch3Playable();
+          updateHUD();
+        }
+      }
+    }
+
+    function replenishMatch3Board() {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (cfg.mode !== "match3") return;
+      const totalBeads = state.rods.reduce((sum, r) => sum + r.length, 0);
+      if (totalBeads >= cfg.rods * 3) return;
+
+      const targetPerRod = Math.max(3, cfg.slots - 2);
+      for (let r = 0; r < cfg.rods; r++) {
+        while (state.rods[r].length < targetPerRod) {
+          const s = state.rods[r].length;
+          state.rods[r].push(pickNonMatchingColor(state.rods, r, s, cfg.colors, cfg.dirs));
+        }
+      }
+    }
+
+    function ensureMatch3Playable() {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (cfg.mode !== "match3") return;
+      const counts = Array(cfg.colors).fill(0);
+      state.rods.forEach(r => r.forEach(c => { if (c < cfg.colors) counts[c]++; }));
+      const hasEnough = counts.some(cnt => cnt >= 3);
+      const hasSpace = state.rods.some(r => r.length < cfg.slots);
+
+      if (!hasSpace) {
+        for (let r = 0; r < cfg.rods; r++) {
+          if (state.rods[r].length > cfg.slots - 1) state.rods[r].pop();
+        }
+      }
+      if (!hasEnough) {
+        const dom = counts.indexOf(Math.max(...counts));
+        for (let r = 0; r < cfg.rods && counts[dom] < 3; r++) {
+          if (state.rods[r].length < cfg.slots - 1) {
+            state.rods[r].push(dom);
+            counts[dom]++;
+          }
+        }
+      }
+    }
+
+    function scheduleBalancedSingleBeadShift() {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (!cfg.colorShift || state.levelWon) {
+        state.nextShiftTarget = null;
+        return;
+      }
+      const counts = Array(cfg.colors).fill(0);
+      const candidates = [];
+      state.rods.forEach((rod, rIdx) => {
+        rod.forEach((col, sIdx) => {
+          if (col < cfg.colors) counts[col]++;
+          candidates.push({ rodIdx: rIdx, slotIdx: sIdx, color: col });
+        });
+      });
+      if (candidates.length === 0) return;
+
+      let overColor = -1, underColor = -1;
+      for (let c = 0; c < cfg.colors; c++) {
+        if (counts[c] > cfg.target) overColor = c;
+        if (counts[c] < cfg.target) underColor = c;
+      }
+
+      if (overColor !== -1 && underColor !== -1) {
+        const pool = candidates.filter(item => item.color === overColor);
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        state.nextShiftTarget = { rodIdx: pick.rodIdx, slotIdx: pick.slotIdx, newColor: underColor };
+      } else {
+        const nonDone = candidates.filter(item => !isRodCompleted(item.rodIdx));
+        const pool = nonDone.length > 0 ? nonDone : candidates;
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        const newCol = (pick.color + 1 + Math.floor(Math.random() * (cfg.colors - 1))) % cfg.colors;
+        state.nextShiftTarget = { rodIdx: pick.rodIdx, slotIdx: pick.slotIdx, newColor: newCol };
+      }
+    }
+
+    function scheduleRandomSingleBeadShift() {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (!cfg.colorShift || state.levelWon || state.levelLost) {
+        state.nextShiftTarget = null;
+        return;
+      }
+      const candidates = [];
+      state.rods.forEach((rod, rIdx) => {
+        rod.forEach((col, sIdx) => candidates.push({ rodIdx: rIdx, slotIdx: sIdx, color: col }));
+      });
+      if (candidates.length === 0) return;
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      const newCol = (pick.color + 1 + Math.floor(Math.random() * (cfg.colors - 1))) % cfg.colors;
+      state.nextShiftTarget = { rodIdx: pick.rodIdx, slotIdx: pick.slotIdx, newColor: newCol };
+    }
+
+    function executeSingleBeadShift() {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (!cfg.colorShift || state.levelWon || state.levelLost || state.animatingBead || state.dragging || state.cascading) return;
+
+      if (!state.nextShiftTarget) {
+        if (cfg.mode === "match3") scheduleRandomSingleBeadShift();
+        else scheduleBalancedSingleBeadShift();
+      }
+      const target = state.nextShiftTarget;
+      if (!target) return;
+
+      const rod = state.rods[target.rodIdx];
+      if (rod && target.slotIdx < rod.length) {
+        rod[target.slotIdx] = target.newColor;
+        sound.playColorShift();
+        const coords = getBeadCoords(target.rodIdx, target.slotIdx);
+        const style = BEAD_STYLES[target.newColor % BEAD_STYLES.length];
+        spawnParticles(coords.x, coords.y, style.rimColor, 16);
+
+        if (cfg.mode === "match3") {
+          resolveMatch3Cascade(1);
+        } else {
+          updateCompletedSet();
+          updateHUD();
+          checkLevelWin();
+        }
+      }
+
+      if (cfg.mode === "match3") scheduleRandomSingleBeadShift();
+      else scheduleBalancedSingleBeadShift();
+    }
+
+    function isRodCompleted(rodIdx) {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (cfg.mode === "match3") return false;
+      const rod = state.rods[rodIdx];
+      if (!rod || rod.length !== cfg.target) return false;
+      const firstColor = rod[0];
+      return rod.every(c => c === firstColor);
+    }
+
+    function updateCompletedSet() {
+      const prevSize = state.completedRods.size;
+      state.completedRods.clear();
+      for (let i = 0; i < state.rods.length; i++) {
+        if (isRodCompleted(i)) state.completedRods.add(i);
+      }
+      if (state.completedRods.size > prevSize) sound.playColumnLock();
+    }
+
+    function canMove(fromIdx, toIdx) {
+      if (fromIdx === toIdx) return false;
+      const cfg = LEVELS[state.currentLevelIdx];
+      const fromRod = state.rods[fromIdx];
+      const toRod = state.rods[toIdx];
+      if (!fromRod || fromRod.length === 0) return false;
+      if (toRod.length >= cfg.slots) return false;
+      return true;
+    }
+
+    /********************************************************************
+     * 5. PAIWAN BEAD RENDERER (CLEAN, NO NUMBERS)
+     ********************************************************************/
+    function drawPaiwanBeadOnContext(targetCtx, x, y, r, colorId, isLifted = false, isLocked = false, modeOverride = null, scaleX = 1, scaleY = 1, isShiftingSoon = false) {
+      const style = BEAD_STYLES[colorId % BEAD_STYLES.length];
+      const vMode = modeOverride !== null ? modeOverride : state.visualMode;
+      const isBarrel = (vMode === 1);
+      const showPattern = (vMode !== 2);
+      const isHighlighted = (state.highlightColorId === colorId);
+
+      targetCtx.save();
+      targetCtx.translate(x, y);
+      if (scaleX !== 1 || scaleY !== 1) targetCtx.scale(scaleX, scaleY);
+
+      if (isShiftingSoon) {
+        targetCtx.save();
+        targetCtx.beginPath();
+        targetCtx.arc(0, 0, r * 1.25, 0, Math.PI * 2);
+        targetCtx.fillStyle = "rgba(217, 70, 239, 0.35)";
+        targetCtx.fill();
+        targetCtx.strokeStyle = "#d946ef";
+        targetCtx.lineWidth = 2.5;
+        targetCtx.stroke();
+        targetCtx.restore();
+      } else if (isHighlighted) {
+        targetCtx.save();
+        targetCtx.beginPath();
+        targetCtx.arc(0, 0, r * 1.22, 0, Math.PI * 2);
+        targetCtx.fillStyle = "rgba(250, 204, 21, 0.35)";
+        targetCtx.fill();
+        targetCtx.strokeStyle = "#eab308";
+        targetCtx.lineWidth = 2.2;
+        targetCtx.stroke();
+        targetCtx.restore();
+      }
+
+      targetCtx.shadowColor = isLifted ? "rgba(2, 132, 199, 0.48)" : "rgba(15, 23, 42, 0.34)";
+      targetCtx.shadowBlur = isLifted ? 15 : 7;
+      targetCtx.shadowOffsetY = isLifted ? 6 : 3;
+
+      const bw = r * 1.98;
+      const bh = r * 1.84;
+
+      targetCtx.beginPath();
+      if (isBarrel) targetCtx.roundRect(-bw / 2, -bh / 2, bw, bh, r * 0.42);
+      else targetCtx.arc(0, 0, r, 0, Math.PI * 2);
+
+      if (!showPattern) {
+        const solidColors = ["#0284c7", "#e11d48", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#475569", "#ea580c", "#16a34a"];
+        const cHex = solidColors[colorId % solidColors.length];
+        const grad = targetCtx.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.35, cHex);
+        grad.addColorStop(1, "#0f172a");
+        targetCtx.fillStyle = grad;
+        targetCtx.fill();
+      } else {
+        targetCtx.fillStyle = style.base;
+        targetCtx.fill();
+      }
+
+      targetCtx.shadowColor = "transparent";
+      targetCtx.shadowBlur = 0;
+      targetCtx.shadowOffsetY = 0;
+
+      if (showPattern) {
+        targetCtx.save();
+        targetCtx.clip();
+
+        const p = style.pattern;
+        if (p === "earth_blocks") {
+          targetCtx.fillStyle = "#3b5e45";
+          targetCtx.fillRect(-r * 1.1, -r * 1.1, r * 1.1, r * 1.15);
+          targetCtx.fillStyle = "#e6a132";
+          targetCtx.fillRect(-r * 1.1, r * 0.02, r * 1.1, r * 1.1);
+          targetCtx.fillStyle = "#483734";
+          targetCtx.fillRect(0, -r * 1.1, r * 1.1, r * 1.12);
+          targetCtx.fillStyle = "#cc7d63";
+          targetCtx.fillRect(0, r * 0.02, r * 1.1, r * 1.1);
+          targetCtx.beginPath();
+          targetCtx.arc(r * 0.65, r * 0.68, r * 0.35, 0, Math.PI * 2);
+          targetCtx.fillStyle = "#3a2e2c";
+          targetCtx.fill();
+        } else if (p === "tears_dots") {
+          targetCtx.fillStyle = "#244c80";
+          [[0, 0, 0.165], [0, -0.37, 0.14], [0, 0.37, 0.14], [-0.42, 0, 0.14], [0.42, 0, 0.14]].forEach(([dx, dy, dr]) => {
+            targetCtx.beginPath();
+            targetCtx.arc(dx * r, dy * r, r * dr, 0, Math.PI * 2);
+            targetCtx.fill();
+          });
+          [-0.72, 0.72].forEach((ry, idx) => {
+            targetCtx.beginPath();
+            for (let sx = -1.1; sx <= 1.1; sx += 0.1) {
+              const wx = sx * r;
+              const wy = ry * r + Math.sin(sx * 5) * r * 0.07;
+              if (sx === -1.1) targetCtx.moveTo(wx, wy);
+              else targetCtx.lineTo(wx, wy);
+            }
+            targetCtx.strokeStyle = "#d99126";
+            targetCtx.lineWidth = Math.max(1.8, r * 0.13);
+            targetCtx.stroke();
+            targetCtx.beginPath();
+            const ry2 = idx === 0 ? ry - 0.14 : ry + 0.14;
+            targetCtx.moveTo(-r, ry2 * r);
+            targetCtx.lineTo(r, ry2 * r);
+            targetCtx.strokeStyle = "#8f3f2b";
+            targetCtx.lineWidth = Math.max(1.4, r * 0.1);
+            targetCtx.stroke();
+          });
+        } else if (p === "sunlight_waves") {
+          [
+            { yOff: -0.58, color: "#234469", w: 0.15 },
+            { yOff: -0.40, color: "#e09f28", w: 0.15 },
+            { yOff: -0.22, color: "#9c412b", w: 0.14 },
+            { yOff: -0.05, color: "#5fa0c7", w: 0.13 },
+            { yOff:  0.12, color: "#d99326", w: 0.13 },
+            { yOff:  0.62, color: "#234469", w: 0.22 }
+          ].forEach(band => {
+            targetCtx.beginPath();
+            for (let sx = -1.15; sx <= 1.15; sx += 0.08) {
+              const wx = sx * r;
+              const dip = Math.cos(sx * 2.5) * r * 0.24;
+              const wy = band.yOff * r + dip;
+              if (sx === -1.15) targetCtx.moveTo(wx, wy);
+              else targetCtx.lineTo(wx, wy);
+            }
+            targetCtx.strokeStyle = band.color;
+            targetCtx.lineWidth = Math.max(1.6, r * band.w);
+            targetCtx.lineCap = "round";
+            targetCtx.stroke();
+          });
+        } else if (p === "peacock_plumes") {
+          [
+            { px: -0.46, py: -0.32, ang: -0.55 },
+            { px:  0.34, py: -0.05, ang:  0.50 },
+            { px: -0.28, py:  0.48, ang: -0.40 }
+          ].forEach(pl => {
+            targetCtx.save();
+            targetCtx.translate(pl.px * r, pl.py * r);
+            targetCtx.rotate(pl.ang);
+            targetCtx.beginPath();
+            targetCtx.ellipse(0, 0, r * 0.42, r * 0.23, 0, 0, Math.PI * 2);
+            targetCtx.fillStyle = "#1d3557";
+            targetCtx.fill();
+            targetCtx.beginPath();
+            targetCtx.ellipse(r * 0.04, 0, r * 0.29, r * 0.15, 0, 0, Math.PI * 2);
+            targetCtx.fillStyle = "#69a6d1";
+            targetCtx.fill();
+            targetCtx.beginPath();
+            targetCtx.ellipse(r * 0.08, 0, r * 0.16, r * 0.085, 0, 0, Math.PI * 2);
+            targetCtx.fillStyle = "#c24d34";
+            targetCtx.fill();
+            targetCtx.restore();
+          });
+        } else if (p === "guardian_eyes") {
+          targetCtx.strokeStyle = "#d97724";
+          targetCtx.lineWidth = Math.max(2.2, r * 0.18);
+          targetCtx.beginPath();
+          targetCtx.moveTo(-r * 0.38, -r);
+          targetCtx.lineTo(-r * 0.38, r);
+          targetCtx.moveTo(r * 0.42, -r);
+          targetCtx.lineTo(r * 0.42, r);
+          targetCtx.moveTo(-r * 0.38, r * 0.08);
+          targetCtx.lineTo(r * 0.42, r * 0.08);
+          targetCtx.stroke();
+          targetCtx.strokeStyle = "#f4f1ea";
+          targetCtx.lineWidth = Math.max(1.2, r * 0.08);
+          targetCtx.stroke();
+          [[0.02, -0.44, 0.32], [0.02, 0.54, 0.28], [-0.75, -0.15, 0.26]].forEach(([ex, ey, er]) => {
+            const cx = ex * r;
+            const cy = ey * r;
+            targetCtx.beginPath();
+            targetCtx.arc(cx, cy, r * er, 0, Math.PI * 2);
+            targetCtx.fillStyle = "#d97724";
+            targetCtx.fill();
+            targetCtx.beginPath();
+            targetCtx.arc(cx, cy, r * er * 0.68, 0, Math.PI * 2);
+            targetCtx.fillStyle = "#f4f1ea";
+            targetCtx.fill();
+            targetCtx.beginPath();
+            targetCtx.arc(cx, cy, r * er * 0.36, 0, Math.PI * 2);
+            targetCtx.fillStyle = "#1c1919";
+            targetCtx.fill();
+          });
+        } else if (p === "warrior_chevrons") {
+          const drawZigzag = (yBase, amp, color, lw) => {
+            targetCtx.beginPath();
+            [[-1.05, yBase + amp], [-0.52, yBase - amp], [0, yBase + amp], [0.52, yBase - amp], [1.05, yBase + amp]].forEach(([px, py], i) => {
+              if (i === 0) targetCtx.moveTo(px * r, py * r);
+              else targetCtx.lineTo(px * r, py * r);
+            });
+            targetCtx.strokeStyle = color;
+            targetCtx.lineWidth = Math.max(1.5, r * lw);
+            targetCtx.lineJoin = "miter";
+            targetCtx.stroke();
+          };
+          drawZigzag(-0.68, 0.14, "#9e3b2b", 0.22);
+          drawZigzag(-0.52, 0.15, "#f5f3ef", 0.12);
+          drawZigzag(0.0,   0.13, "#4a4344", 0.09);
+          drawZigzag(0.52, -0.15, "#f5f3ef", 0.12);
+          drawZigzag(0.68, -0.14, "#c98f32", 0.22);
+        } else if (p === "limbs_vertical_waves") {
+          [
+            { xOff: -0.68, color: "#f2ece1" },
+            { xOff: -0.26, color: "#eab308" },
+            { xOff:  0.18, color: "#4d7c5b" },
+            { xOff:  0.60, color: "#e05336" }
+          ].forEach((st, idx) => {
+            targetCtx.beginPath();
+            for (let sy = -1.1; sy <= 1.1; sy += 0.1) {
+              const wy = sy * r;
+              const wx = (st.xOff + Math.sin(sy * 3.2 + idx) * 0.09) * r;
+              if (sy === -1.1) targetCtx.moveTo(wx, wy);
+              else targetCtx.lineTo(wx, wy);
+            }
+            targetCtx.strokeStyle = st.color;
+            targetCtx.lineWidth = Math.max(2.0, r * 0.19);
+            targetCtx.lineCap = "round";
+            targetCtx.stroke();
+          });
+        } else if (p === "butterfly_arcs") {
+          [-0.55, 0, 0.55].forEach(ax => {
+            [[0.34, "#e08b26"], [0.23, "#4b7f8c"], [0.13, "#f5f2eb"]].forEach(([ar, col]) => {
+              targetCtx.beginPath();
+              targetCtx.arc(ax * r, -r * 0.88, r * ar, 0, Math.PI);
+              targetCtx.strokeStyle = col;
+              targetCtx.lineWidth = Math.max(1.3, r * 0.09);
+              targetCtx.stroke();
+
+              targetCtx.beginPath();
+              targetCtx.arc(ax * r, r * 0.88, r * ar, Math.PI, Math.PI * 2);
+              targetCtx.strokeStyle = col;
+              targetCtx.lineWidth = Math.max(1.3, r * 0.09);
+              targetCtx.stroke();
+            });
+          });
+          [-0.64, -0.22, 0.22, 0.64].forEach(dx => {
+            targetCtx.beginPath();
+            targetCtx.arc(dx * r, 0, r * 0.115, 0, Math.PI * 2);
+            targetCtx.fillStyle = "#f8f6f0";
+            targetCtx.fill();
+          });
+        } else if (p === "solid_orange") {
+          const oGrad = targetCtx.createLinearGradient(-r, -r, r, r);
+          oGrad.addColorStop(0, "#f3b04c");
+          oGrad.addColorStop(0.5, "#d98a29");
+          oGrad.addColorStop(1, "#9c5912");
+          targetCtx.fillStyle = oGrad;
+          targetCtx.fillRect(-r * 1.1, -r * 1.1, r * 2.2, r * 2.2);
+        } else if (p === "solid_green") {
+          const gGrad = targetCtx.createLinearGradient(-r, -r, r, r);
+          gGrad.addColorStop(0, "#52b788");
+          gGrad.addColorStop(0.5, "#2d7a4d");
+          gGrad.addColorStop(1, "#1b4332");
+          targetCtx.fillStyle = gGrad;
+          targetCtx.fillRect(-r * 1.1, -r * 1.1, r * 2.2, r * 2.2);
+        }
+
+        const shadeGrad = targetCtx.createLinearGradient(-r, 0, r, 0);
+        shadeGrad.addColorStop(0, "rgba(0, 0, 0, 0.28)");
+        shadeGrad.addColorStop(0.22, "rgba(255, 255, 255, 0.14)");
+        shadeGrad.addColorStop(0.5, "rgba(255, 255, 255, 0.0)");
+        shadeGrad.addColorStop(0.82, "rgba(0, 0, 0, 0.12)");
+        shadeGrad.addColorStop(1, "rgba(0, 0, 0, 0.35)");
+        targetCtx.fillStyle = shadeGrad;
+        targetCtx.fillRect(-r * 1.2, -r * 1.2, r * 2.4, r * 2.4);
+
+        targetCtx.restore();
+      }
+
+      if (isBarrel) {
+        targetCtx.beginPath();
+        targetCtx.ellipse(0, -bh * 0.45, r * 0.28, r * 0.08, 0, 0, Math.PI * 2);
+        targetCtx.fillStyle = "rgba(15, 23, 42, 0.45)";
+        targetCtx.fill();
+      }
+
+      const shineGrad = targetCtx.createLinearGradient(-r * 0.55, -r * 0.75, 0, -r * 0.1);
+      shineGrad.addColorStop(0, "rgba(255, 255, 255, 0.68)");
+      shineGrad.addColorStop(1, "rgba(255, 255, 255, 0.0)");
+      targetCtx.beginPath();
+      targetCtx.ellipse(-r * 0.28, -r * 0.34, r * 0.32, r * 0.17, -Math.PI / 6, 0, Math.PI * 2);
+      targetCtx.fillStyle = shineGrad;
+      targetCtx.fill();
+
+      targetCtx.beginPath();
+      if (isBarrel) targetCtx.roundRect(-bw / 2, -bh / 2, bw, bh, r * 0.42);
+      else targetCtx.arc(0, 0, r - 0.5, 0, Math.PI * 2);
+      targetCtx.strokeStyle = isLocked ? "#fde047" : isLifted ? "#38bdf8" : "rgba(255, 255, 255, 0.58)";
+      targetCtx.lineWidth = isLocked ? 2.4 : 1.2;
+      targetCtx.stroke();
+
+      targetCtx.restore();
+    }
+
+    function renderHomeHeroCanvas() {
+      const hc = document.getElementById("homeHeroCanvas");
+      if (!hc) return;
+      const hCtx = hc.getContext("2d");
+      hCtx.clearRect(0, 0, hc.width, hc.height);
+
+      const rodXs = [54, 120, 186];
+      const stacks = [[0, 1, 2], [4, 5], [7, 8, 9]];
+
+      rodXs.forEach((cx, idx) => {
+        const rGrad = hCtx.createLinearGradient(cx - 5, 0, cx + 5, 0);
+        rGrad.addColorStop(0, "#64748b");
+        rGrad.addColorStop(0.3, "#f8fafc");
+        rGrad.addColorStop(0.6, "#cbd5e1");
+        rGrad.addColorStop(1, "#475569");
+        hCtx.beginPath();
+        hCtx.roundRect(cx - 5, 14, 10, 96, 5);
+        hCtx.fillStyle = rGrad;
+        hCtx.fill();
+
+        hCtx.beginPath();
+        hCtx.roundRect(cx - 24, 106, 48, 8, 4);
+        hCtx.fillStyle = rGrad;
+        hCtx.fill();
+
+        stacks[idx].forEach((bId, sIdx) => {
+          drawPaiwanBeadOnContext(hCtx, cx, 94 - sIdx * 24, 13, bId, false, false, 1);
+        });
+      });
+    }
+
+    function renderRulesBeadList() {
+      const list = document.getElementById("rulesBeadList");
+      if (!list) return;
+      list.innerHTML = "";
+      BEAD_STYLES.forEach((b, idx) => {
+        const row = document.createElement("div");
+        row.className = "flex items-center gap-2 p-1.5 rounded-xl bg-white/50 dark:bg-slate-900/40";
+        const c = document.createElement("canvas");
+        c.width = 36;
+        c.height = 36;
+        c.className = "w-7 h-7 shrink-0";
+        drawPaiwanBeadOnContext(c.getContext("2d"), 18, 18, 13, idx, false, false, 1);
+        const lbl = document.createElement("span");
+        lbl.className = "font-bold text-[11px] truncate";
+        lbl.textContent = b.name;
+        row.appendChild(c);
+        row.appendChild(lbl);
+        list.appendChild(row);
+      });
+    }
+
+    /********************************************************************
+     * 6. RESPONSIVE LAYOUT, 60FPS RENDERER & FIREWORKS
+     ********************************************************************/
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    let rodGeometries = [];
+
+    for (let i = 0; i < 18; i++) {
+      state.bubbles.push({
+        x: Math.random(),
+        y: Math.random(),
+        r: 2 + Math.random() * 6,
+        speed: 0.0003 + Math.random() * 0.0006,
+        wobble: Math.random() * Math.PI * 2
+      });
+    }
+
+    function resizeCanvas() {
+      const container = document.getElementById("canvasContainer");
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      if (rect.width < 10 || rect.height < 10) return;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      computeRodGeometries(rect.width, rect.height);
+    }
+
+    function computeRodGeometries(w, h) {
+      const cfg = LEVELS[state.currentLevelIdx];
+      const numRods = cfg.rods;
+      rodGeometries = [];
+
+      const useTwoRows = (numRods >= 7 && w < 620);
+      const rows = useTwoRows ? 2 : 1;
+      const topReserved = 26;
+      const bottomReserved = 14;
+      const usableH = h - topReserved - bottomReserved;
+      const rowH = usableH / rows;
+
+      for (let r = 0; r < numRods; r++) {
+        let rowIdx = 0, colsInRow = numRods, colIdx = r;
+        if (useTwoRows) {
+          const firstRowCount = Math.ceil(numRods / 2);
+          if (r < firstRowCount) {
+            rowIdx = 0; colsInRow = firstRowCount; colIdx = r;
+          } else {
+            rowIdx = 1; colsInRow = numRods - firstRowCount; colIdx = r - firstRowCount;
+          }
+        }
+
+        const marginX = Math.max(16, w * 0.04);
+        const usableW = w - marginX * 2;
+        const cellW = usableW / colsInRow;
+        const centerX = marginX + cellW * (colIdx + 0.5);
+
+        const baseBottomY = topReserved + (rowIdx + 1) * rowH - (useTwoRows ? 15 : 22);
+        const maxRodHeight = rowH - (useTwoRows ? 40 : 60);
+
+        const maxDiameterByHeight = Math.floor(maxRodHeight / (cfg.slots + 0.42));
+        const maxDiameterByWidth = Math.floor(cellW * 0.68);
+        const beadRadius = Math.max(9, Math.min(26, Math.floor(Math.min(maxDiameterByHeight, maxDiameterByWidth) / 2)));
+        const slotStep = beadRadius * 1.92;
+        const rodHeight = slotStep * cfg.slots + beadRadius * 0.85;
+        const rodTopY = baseBottomY - rodHeight;
+
+        rodGeometries.push({
+          index: r,
+          centerX,
+          rodTopY,
+          baseBottomY,
+          rodHeight,
+          beadRadius,
+          slotStep,
+          hitLeft: centerX - cellW * 0.48,
+          hitRight: centerX + cellW * 0.48,
+          hitTop: rodTopY - beadRadius * 2.8,
+          hitBottom: baseBottomY + 20
+        });
+      }
+    }
+
+    function getBeadCoords(rodIdx, slotIdx) {
+      const g = rodGeometries[rodIdx];
+      if (!g) return { x: 0, y: 0 };
+      return { x: g.centerX, y: g.baseBottomY - g.beadRadius - 6 - slotIdx * g.slotStep };
+    }
+
+    function spawnParticles(x, y, colorHex, count = 24) {
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+        const speed = 1.5 + Math.random() * 4.5;
+        state.particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.5,
+          r: 2.5 + Math.random() * 3.5,
+          color: colorHex,
+          alpha: 1,
+          decay: 0.016 + Math.random() * 0.015
+        });
+      }
+    }
+
+    function launchGrandFireworks() {
+      const container = document.getElementById("canvasContainer");
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      const fireColors = ["#ef4444", "#f59e0b", "#fde047", "#ec4899", "#38bdf8", "#10b981"];
+
+      for (let b = 0; b < 10; b++) {
+        setTimeout(() => {
+          const bx = w * (0.14 + Math.random() * 0.72);
+          const by = h * (0.15 + Math.random() * 0.48);
+          for (let i = 0; i < 44; i++) {
+            const angle = (Math.PI * 2 * i) / 44 + (Math.random() - 0.5) * 0.25;
+            const speed = 2.0 + Math.random() * 6.8;
+            state.particles.push({
+              x: bx, y: by,
+              vx: Math.cos(angle) * speed,
+              vy: Math.sin(angle) * speed - 1.0,
+              r: 2.5 + Math.random() * 4,
+              color: fireColors[Math.floor(Math.random() * fireColors.length)],
+              alpha: 1,
+              decay: 0.010 + Math.random() * 0.010
+            });
+          }
+        }, b * 200);
+      }
+    }
+
+    function renderFrame(timestamp) {
+      const dt = state.lastFrameTime ? Math.min(100, timestamp - state.lastFrameTime) : 16;
+      state.lastFrameTime = timestamp;
+
+      const cfg = LEVELS[state.currentLevelIdx];
+      const timerActive = (state.view === "game" && !state.levelWon && !state.levelLost && !isAnyModalOpen());
+
+      if (timerActive && cfg.colorShift) {
+        state.shiftElapsedMs += dt;
+        const intervalMs = cfg.shiftSec * 1000;
+        const remainingMs = Math.max(0, intervalMs - state.shiftElapsedMs);
+        const pct = Math.max(0, Math.min(100, (remainingMs / intervalMs) * 100));
+
+        const barEl = document.getElementById("shiftProgressBar");
+        const txtEl = document.getElementById("shiftCountdownText");
+        if (barEl) barEl.style.width = `${pct}%`;
+        if (txtEl) txtEl.textContent = `${(remainingMs / 1000).toFixed(1)}s`;
+
+        if (state.shiftElapsedMs >= intervalMs) {
+          state.shiftElapsedMs = 0;
+          executeSingleBeadShift();
+        }
+      }
+
+      if (timerActive && cfg.deadlineSec > 0) {
+        state.deadlineElapsedMs += dt;
+        const deadlineMs = cfg.deadlineSec * 1000;
+        const remMs = Math.max(0, deadlineMs - state.deadlineElapsedMs);
+        const pct = Math.max(0, Math.min(100, (remMs / deadlineMs) * 100));
+
+        const dBar = document.getElementById("deadlineProgressBar");
+        const dTxt = document.getElementById("deadlineCountdownText");
+        if (dBar) dBar.style.width = `${pct}%`;
+        if (dTxt) dTxt.textContent = `${(remMs / 1000).toFixed(1)}s`;
+
+        if (state.deadlineElapsedMs >= deadlineMs) triggerLevel22Timeout();
+      }
+
+      if (state.view === "game") {
+        const container = document.getElementById("canvasContainer");
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.save();
+        state.bubbles.forEach(b => {
+          b.y -= b.speed;
+          if (b.y < -0.05) { b.y = 1.05; b.x = Math.random(); }
+          const bx = (b.x + Math.sin(timestamp * 0.001 + b.wobble) * 0.015) * w;
+          const by = b.y * h;
+          ctx.beginPath();
+          ctx.arc(bx, by, b.r, 0, Math.PI * 2);
+          ctx.fillStyle = state.darkMode ? "rgba(125, 211, 252, 0.08)" : "rgba(255, 255, 255, 0.40)";
+          ctx.fill();
+        });
+        ctx.restore();
+
+        const isShiftWarning = cfg.colorShift && !state.levelWon && !state.levelLost && (cfg.shiftSec * 1000 - state.shiftElapsedMs < 1400) && Math.floor(timestamp / 180) % 2 === 0;
+
+        rodGeometries.forEach(g => {
+          const idx = g.index;
+          const rodBeads = state.rods[idx] || [];
+          const isSelected = state.selectedRod === idx;
+          const isDragOrigin = state.dragging && state.dragging.fromRod === idx;
+          const isDragHover = state.dragging && state.dragging.hoverRod === idx && canMove(state.dragging.fromRod, idx);
+          const isCompleted = state.completedRods.has(idx);
+          const isHintFrom = state.hintPair && state.hintPair[0] === idx;
+          const isHintTo = state.hintPair && state.hintPair[1] === idx;
+
+          let shakeOffset = 0;
+          if (state.shakeRod === idx && timestamp - state.shakeTime < 320) {
+            shakeOffset = Math.sin((timestamp - state.shakeTime) * 0.05) * 6;
+          }
+
+          const cx = g.centerX + shakeOffset;
+          const rodWidth = Math.max(7, Math.min(13, g.beadRadius * 0.46));
+
+          ctx.save();
+
+          if (isSelected || isDragHover || isHintFrom || isHintTo) {
+            ctx.beginPath();
+            ctx.roundRect(cx - g.beadRadius * 1.35, g.rodTopY - g.beadRadius * 2.1, g.beadRadius * 2.7, g.rodHeight + g.beadRadius * 2.5, 14);
+            ctx.fillStyle = isDragHover ? "rgba(16, 185, 129, 0.22)" : isSelected ? "rgba(56, 189, 248, 0.16)" : "rgba(251, 191, 36, 0.18)";
+            ctx.fill();
+            ctx.strokeStyle = isDragHover ? "rgba(16, 185, 129, 0.75)" : isSelected ? "rgba(2, 132, 199, 0.55)" : "rgba(245, 158, 11, 0.75)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+
+          if (cfg.mode === "classic") {
+            const targetLineY = g.baseBottomY - 6 - cfg.target * g.slotStep + (g.slotStep - g.beadRadius * 2) * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - g.beadRadius * 1.2, targetLineY);
+            ctx.lineTo(cx + g.beadRadius * 1.2, targetLineY);
+            ctx.setLineDash([3, 3]);
+            ctx.strokeStyle = isCompleted ? "rgba(16, 185, 129, 0.85)" : state.darkMode ? "rgba(148, 163, 184, 0.45)" : "rgba(14, 116, 144, 0.40)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+
+          const rodGrad = ctx.createLinearGradient(cx - rodWidth / 2, 0, cx + rodWidth / 2, 0);
+          if (isCompleted) {
+            rodGrad.addColorStop(0, "#94a3b8");
+            rodGrad.addColorStop(0.28, "#fef08a");
+            rodGrad.addColorStop(0.55, "#eab308");
+            rodGrad.addColorStop(0.85, "#cbd5e1");
+            rodGrad.addColorStop(1, "#64748b");
+          } else {
+            rodGrad.addColorStop(0, "#64748b");
+            rodGrad.addColorStop(0.25, "#f8fafc");
+            rodGrad.addColorStop(0.45, "#cbd5e1");
+            rodGrad.addColorStop(0.75, "#94a3b8");
+            rodGrad.addColorStop(1, "#475569");
+          }
+
+          ctx.shadowColor = "rgba(15, 23, 42, 0.22)";
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetX = 2;
+
+          ctx.beginPath();
+          ctx.roundRect(cx - rodWidth / 2, g.rodTopY, rodWidth, g.rodHeight, rodWidth / 2);
+          ctx.fillStyle = rodGrad;
+          ctx.fill();
+
+          ctx.shadowColor = "transparent";
+          for (let s = 0; s < cfg.slots; s++) {
+            const sy = g.baseBottomY - g.beadRadius - 6 - s * g.slotStep;
+            ctx.beginPath();
+            ctx.arc(cx, sy, 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(15, 23, 42, 0.24)";
+            ctx.fill();
+          }
+
+          const baseW = g.beadRadius * 2.38;
+          const baseH = 9;
+          const baseGrad = ctx.createLinearGradient(cx - baseW / 2, 0, cx + baseW / 2, 0);
+          baseGrad.addColorStop(0, "#475569");
+          baseGrad.addColorStop(0.3, "#f1f5f9");
+          baseGrad.addColorStop(0.6, "#94a3b8");
+          baseGrad.addColorStop(1, "#334155");
+
+          ctx.beginPath();
+          ctx.roundRect(cx - baseW / 2, g.baseBottomY - 4, baseW, baseH, 4.5);
+          ctx.fillStyle = baseGrad;
+          ctx.fill();
+
+          const hideTop = (isSelected || isDragOrigin) && rodBeads.length > 0;
+          const countToDraw = hideTop ? rodBeads.length - 1 : rodBeads.length;
+          for (let bIdx = 0; bIdx < countToDraw; bIdx++) {
+            const pos = getBeadCoords(idx, bIdx);
+            let sx = 1, sy = 1, yOff = 0;
+            if (state.landingBounce && state.landingBounce.rodIdx === idx && state.landingBounce.slotIdx === bIdx) {
+              const bt = (timestamp - state.landingBounce.startTime) / 280;
+              if (bt < 1) {
+                const damp = Math.exp(-bt * 5) * Math.cos(bt * Math.PI * 3.5);
+                sx = 1 + damp * 0.15;
+                sy = 1 - damp * 0.15;
+                yOff = Math.abs(damp) * 3;
+              } else {
+                state.landingBounce = null;
+              }
+            }
+            const shiftingThis = isShiftWarning && state.nextShiftTarget && state.nextShiftTarget.rodIdx === idx && state.nextShiftTarget.slotIdx === bIdx;
+            drawPaiwanBeadOnContext(ctx, pos.x + shakeOffset, pos.y + yOff, g.beadRadius, rodBeads[bIdx], false, isCompleted, null, sx, sy, shiftingThis);
+          }
+
+          if (isSelected && !state.dragging && rodBeads.length > 0 && !state.animatingBead) {
+            const topColor = rodBeads[rodBeads.length - 1];
+            const floatOffset = Math.sin(timestamp * 0.006) * 4;
+            const hoverY = g.rodTopY - g.beadRadius * 1.15 + floatOffset;
+            drawPaiwanBeadOnContext(ctx, cx, hoverY, g.beadRadius * 1.07, topColor, true, false);
+          }
+
+          if (isCompleted) {
+            ctx.font = "bold 10px Inter, sans-serif";
+            ctx.fillStyle = state.darkMode ? "#34d399" : "#059669";
+            ctx.textAlign = "center";
+            ctx.fillText("✓", cx, g.baseBottomY + 17);
+          }
+
+          ctx.restore();
+        });
+
+        if (state.hintPair && rodGeometries[state.hintPair[0]] && rodGeometries[state.hintPair[1]]) {
+          const gFrom = rodGeometries[state.hintPair[0]];
+          const gTo = rodGeometries[state.hintPair[1]];
+          ctx.save();
+          ctx.beginPath();
+          const startX = gFrom.centerX;
+          const startY = gFrom.rodTopY - gFrom.beadRadius * 1.2;
+          const endX = gTo.centerX;
+          const endY = gTo.rodTopY - gTo.beadRadius * 0.5;
+          const midX = (startX + endX) / 2;
+          const midY = Math.min(startY, endY) - 48;
+          ctx.moveTo(startX, startY);
+          ctx.quadraticCurveTo(midX, midY, endX, endY);
+          ctx.setLineDash([6, 4]);
+          ctx.lineDashOffset = -timestamp * 0.03;
+          ctx.strokeStyle = "#f59e0b";
+          ctx.lineWidth = 2.8;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        if (state.dragging && rodGeometries[state.dragging.fromRod]) {
+          const g = rodGeometries[state.dragging.fromRod];
+          drawPaiwanBeadOnContext(ctx, state.dragging.x, state.dragging.y, g.beadRadius * 1.12, state.dragging.colorId, true, false);
+        }
+
+        if (state.animatingBead) {
+          const anim = state.animatingBead;
+          const elapsed = timestamp - anim.startTime;
+          const t = Math.min(1, elapsed / anim.duration);
+          const ease = 1 - Math.pow(1 - t, 3);
+          const curX = anim.startX + (anim.endX - anim.startX) * ease;
+          const linearY = anim.startY + (anim.endY - anim.startY) * ease;
+          const arcLift = Math.sin(t * Math.PI) * anim.arcHeight;
+          const curY = linearY - arcLift;
+          const g = rodGeometries[anim.toRod] || rodGeometries[0];
+          drawPaiwanBeadOnContext(ctx, curX, curY, g.beadRadius * 1.06, anim.colorId, true, false);
+          if (t >= 1) finishBeadAnimation();
+        }
+
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const p = state.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.12;
+          p.alpha -= p.decay;
+          if (p.alpha <= 0) {
+            state.particles.splice(i, 1);
+            continue;
+          }
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      requestAnimationFrame(renderFrame);
+    }
+
+    /********************************************************************
+     * 7. PLAYER INTERACTION, WIN/TIMEOUT CHECK & HINT
+     ********************************************************************/
+    function findRodAtPoint(x, y) {
+      for (const g of rodGeometries) {
+        if (x >= g.hitLeft && x <= g.hitRight && y >= g.hitTop && y <= g.hitBottom) return g.index;
+      }
+      return null;
+    }
+
+    function handleRodTap(rodIdx) {
+      sound.startBGM();
+      if (state.animatingBead || state.cascading || state.levelWon || state.levelLost) return;
+      state.hintPair = null;
+
+      const tappedRod = state.rods[rodIdx];
+      if (!tappedRod) return;
+
+      if (state.selectedRod === null) {
+        if (tappedRod.length === 0) {
+          sound.playError();
+          triggerShake(rodIdx);
+          return;
+        }
+        state.selectedRod = rodIdx;
+        sound.playPick();
+        return;
+      }
+
+      if (state.selectedRod === rodIdx) {
+        state.selectedRod = null;
+        sound.playTap(440);
+        return;
+      }
+
+      if (canMove(state.selectedRod, rodIdx)) {
+        startBeadMove(state.selectedRod, rodIdx);
+      } else {
+        sound.playError();
+        triggerShake(rodIdx);
+      }
+    }
+
+    function startBeadMove(fromIdx, toIdx, customStartCoords = null) {
+      const fromRod = state.rods[fromIdx];
+      const toRod = state.rods[toIdx];
+      const colorId = fromRod.pop();
+
+      const gFrom = rodGeometries[fromIdx];
+      const gTo = rodGeometries[toIdx];
+      const endPos = getBeadCoords(toIdx, toRod.length);
+
+      state.history.push({ from: fromIdx, to: toIdx, colorId });
+      state.selectedRod = null;
+
+      const sX = customStartCoords ? customStartCoords.x : gFrom.centerX;
+      const sY = customStartCoords ? customStartCoords.y : (gFrom.rodTopY - gFrom.beadRadius * 1.15);
+
+      state.animatingBead = {
+        colorId,
+        fromRod: fromIdx,
+        toRod: toIdx,
+        startX: sX,
+        startY: sY,
+        endX: endPos.x,
+        endY: endPos.y,
+        arcHeight: customStartCoords ? 22 : Math.max(42, Math.abs(gTo.centerX - gFrom.centerX) * 0.22),
+        startTime: performance.now(),
+        duration: customStartCoords ? 140 : 190
+      };
+    }
+
+    function finishBeadAnimation() {
+      const anim = state.animatingBead;
+      if (!anim) return;
+      const cfg = LEVELS[state.currentLevelIdx];
+      const targetSlotIdx = state.rods[anim.toRod].length;
+      state.rods[anim.toRod].push(anim.colorId);
+      state.animatingBead = null;
+      state.moves++;
+      state.landingBounce = { rodIdx: anim.toRod, slotIdx: targetSlotIdx, startTime: performance.now() };
+      sound.playDrop();
+
+      if (cfg.mode === "match3") {
+        updateHUD();
+        resolveMatch3Cascade(1);
+      } else {
+        const wasCompleted = state.completedRods.has(anim.toRod);
+        updateCompletedSet();
+        const nowCompleted = state.completedRods.has(anim.toRod);
+        if (!wasCompleted && nowCompleted) {
+          const g = rodGeometries[anim.toRod];
+          const style = BEAD_STYLES[anim.colorId % BEAD_STYLES.length];
+          spawnParticles(g.centerX, g.rodTopY + g.rodHeight * 0.4, style.rimColor, 32);
+        }
+        updateHUD();
+        checkLevelWin();
+      }
+    }
+
+    function checkLevelWin() {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (state.levelWon || state.levelLost) return;
+
+      const isWon = cfg.mode === "match3"
+        ? state.clearsCount >= cfg.targetClears
+        : state.completedRods.size >= cfg.colors;
+
+      if (isWon) {
+        state.levelWon = true;
+        const isFinalLevel = (cfg.level === 22);
+
+        if (isFinalLevel) {
+          sound.playFirecrackersAndCheer();
+          launchGrandFireworks();
+        } else {
+          sound.playWinFanfare();
+          rodGeometries.forEach((g, idx) => {
+            const style = BEAD_STYLES[idx % BEAD_STYLES.length];
+            spawnParticles(g.centerX, g.rodTopY + 30, style.rimColor, 26);
+          });
+        }
+
+        const prevBest = state.clearedLevels[cfg.level];
+        if (!prevBest || state.moves < prevBest) {
+          state.clearedLevels[cfg.level] = state.moves;
+          saveProgress();
+        }
+
+        setTimeout(() => showVictoryModal(false), isFinalLevel ? 1400 : 480);
+      }
+    }
+
+    function triggerLevel22Timeout() {
+      if (state.levelWon || state.levelLost) return;
+      state.levelLost = true;
+      sound.playError();
+      showVictoryModal(true);
+    }
+
+    function triggerShake(rodIdx) {
+      state.shakeRod = rodIdx;
+      state.shakeTime = performance.now();
+    }
+
+    function undoMove() {
+      const cfg = LEVELS[state.currentLevelIdx];
+      if (cfg.mode === "match3" || state.animatingBead || state.history.length === 0 || state.levelWon) {
+        sound.playError();
+        return;
+      }
+      const last = state.history.pop();
+      const movedBead = state.rods[last.to].pop();
+      state.rods[last.from].push(movedBead);
+      state.selectedRod = null;
+      state.moves = Math.max(0, state.moves - 1);
+      sound.playPick();
+      updateCompletedSet();
+      updateHUD();
+    }
+
+    function findBestMovePair() {
+      const cfg = LEVELS[state.currentLevelIdx];
+
+      if (cfg.mode === "match3") {
+        for (let from = 0; from < cfg.rods; from++) {
+          if (state.rods[from].length === 0) continue;
+          for (let to = 0; to < cfg.rods; to++) {
+            if (!canMove(from, to)) continue;
+            const simRods = state.rods.map(r => r.slice());
+            simRods[to].push(simRods[from].pop());
+            if (findMatch3Groups(simRods, cfg.dirs).length > 0) return [from, to];
+          }
+        }
+        for (let from = 0; from < cfg.rods; from++) {
+          if (state.rods[from].length === 0) continue;
+          const topCol = state.rods[from][state.rods[from].length - 1];
+          for (let to = 0; to < cfg.rods; to++) {
+            if (!canMove(from, to)) continue;
+            const toRod = state.rods[to];
+            if (toRod.length > 0 && toRod[toRod.length - 1] === topCol) return [from, to];
+          }
+        }
+        for (let from = 0; from < cfg.rods; from++) {
+          for (let to = 0; to < cfg.rods; to++) {
+            if (canMove(from, to)) return [from, to];
+          }
+        }
+        return null;
+      }
+
+      for (let from = 0; from < cfg.rods; from++) {
+        const r = state.rods[from];
+        if (r.length > cfg.target && r.slice(0, cfg.target).every(c => c === r[0])) {
+          for (let to = 0; to < cfg.rods; to++) {
+            if (canMove(from, to) && !isRodCompleted(to)) return [from, to];
+          }
+        }
+      }
+
+      for (let from = 0; from < cfg.rods; from++) {
+        if (state.rods[from].length === 0 || isRodCompleted(from)) continue;
+        const topColor = state.rods[from][state.rods[from].length - 1];
+        const fromAllSame = state.rods[from].every(c => c === topColor);
+        for (let to = 0; to < cfg.rods; to++) {
+          if (!canMove(from, to)) continue;
+          const toRod = state.rods[to];
+          if (toRod.length > 0 && toRod.length < cfg.target && toRod.every(c => c === topColor)) {
+            if (fromAllSame && state.rods[from].length >= toRod.length) continue;
+            return [from, to];
+          }
+        }
+      }
+
+      for (let from = 0; from < cfg.rods; from++) {
+        if (state.rods[from].length <= 1 || isRodCompleted(from)) continue;
+        const topColor = state.rods[from][state.rods[from].length - 1];
+        if (state.rods[from].every(c => c === topColor)) continue;
+        for (let to = 0; to < cfg.rods; to++) {
+          if (!canMove(from, to)) continue;
+          if (state.rods[to].length === 0 || state.rods[to][state.rods[to].length - 1] === topColor) return [from, to];
+        }
+      }
+
+      for (let from = 0; from < cfg.rods; from++) {
+        if (isRodCompleted(from)) continue;
+        for (let to = 0; to < cfg.rods; to++) {
+          if (canMove(from, to)) return [from, to];
+        }
+      }
+      return null;
+    }
+
+    function computeHint() {
+      if (state.animatingBead || state.cascading || state.levelWon || state.levelLost) return;
+      const pair = findBestMovePair();
+      if (pair) {
+        state.hintPair = pair;
+        state.selectedRod = pair[0];
+        sound.playTap(740);
+      }
+    }
+
+    /********************************************************************
+     * 8. UI UPDATERS & EVENT LISTENERS
+     ********************************************************************/
+    function renderActiveBeadsBar() {
+      const bar = document.getElementById("activeBeadsBar");
+      if (!bar) return;
+      bar.innerHTML = "";
+      const cfg = LEVELS[state.currentLevelIdx];
+
+      for (let c = 0; c < cfg.colors; c++) {
+        const style = BEAD_STYLES[c % BEAD_STYLES.length];
+        const isDone = cfg.mode === "classic" && Array.from(state.completedRods).some(rIdx => state.rods[rIdx][0] === c);
+        const isHighlighted = (state.highlightColorId === c);
+
+        const pill = document.createElement("button");
+        pill.type = "button";
+        pill.className = `ios-btn px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0 border transition-all ${
+          isHighlighted
+            ? "bg-amber-400 text-slate-950 border-amber-500 shadow-sm"
+            : isDone
+            ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border-emerald-500/40"
+            : "bg-white/60 dark:bg-slate-800/70 border-slate-300/60 dark:border-slate-700"
+        }`;
+        pill.innerHTML = `
+          <span class="w-2.5 h-2.5 rounded-full inline-block border border-white/60" style="background:${style.rimColor}"></span>
+          <span>${style.name}</span>
+          <span>${isDone ? "✓" : ""}</span>
+        `;
+        pill.addEventListener("click", () => {
+          sound.playTap(690);
+          state.highlightColorId = (state.highlightColorId === c) ? null : c;
+          renderActiveBeadsBar();
+        });
+        bar.appendChild(pill);
+      }
+    }
+
+    function updateHUD() {
+      const cfg = LEVELS[state.currentLevelIdx];
+      document.getElementById("levelTitle").textContent = `Level ${cfg.level} / 22`;
+      document.getElementById("levelSubtitle").textContent = cfg.note;
+      document.getElementById("hudRods").textContent = `${cfg.rods} 柱 (${cfg.slots} 格)`;
+
+      if (cfg.mode === "match3") {
+        const dirText = cfg.dirs.includes("D") ? "直橫斜 3 消" : cfg.dirs.includes("H") ? "直橫 3 消" : "直排 3 消";
+        document.getElementById("hudTarget").textContent = dirText;
+        document.getElementById("hudProgressLabel").textContent = "消除";
+        document.getElementById("hudCompleted").textContent = `${state.clearsCount} / ${cfg.targetClears}`;
+      } else {
+        document.getElementById("hudTarget").textContent = `高 ${cfg.target} 顆`;
+        document.getElementById("hudProgressLabel").textContent = "完成";
+        document.getElementById("hudCompleted").textContent = `${state.completedRods.size} / ${cfg.colors}`;
+      }
+
+      document.getElementById("hudMoves").textContent = String(state.moves);
+
+      const shiftBadge = document.getElementById("shiftBadge");
+      const match3Badge = document.getElementById("match3Badge");
+      const shiftContainer = document.getElementById("shiftTimerContainer");
+      const deadlineContainer = document.getElementById("deadlineTimerContainer");
+
+      if (cfg.colorShift) {
+        shiftBadge.classList.remove("hidden");
+        shiftContainer.classList.remove("hidden");
+        shiftContainer.classList.add("flex");
+      } else {
+        shiftBadge.classList.add("hidden");
+        shiftContainer.classList.add("hidden");
+        shiftContainer.classList.remove("flex");
+      }
+
+      if (cfg.mode === "match3") match3Badge.classList.remove("hidden");
+      else match3Badge.classList.add("hidden");
+
+      if (cfg.deadlineSec > 0) {
+        deadlineContainer.classList.remove("hidden");
+        deadlineContainer.classList.add("flex");
+      } else {
+        deadlineContainer.classList.add("hidden");
+        deadlineContainer.classList.remove("flex");
+      }
+
+      renderActiveBeadsBar();
+    }
+
+    // Pointer Gestures (Tap + Drag-and-Drop)
+    let pointerStartPos = null;
+
+    canvas.addEventListener("pointerdown", (e) => {
+      sound.startBGM();
+      if (state.animatingBead || state.cascading || state.levelWon || state.levelLost) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const rodIdx = findRodAtPoint(x, y);
+
+      pointerStartPos = { x, y, rodIdx, moved: false };
+      if (rodIdx !== null && state.selectedRod === null) {
+        const rod = state.rods[rodIdx];
+        if (rod && rod.length > 0) canvas.setPointerCapture(e.pointerId);
+      }
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!pointerStartPos || state.animatingBead || state.cascading || state.levelWon || state.levelLost) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const dist = Math.hypot(x - pointerStartPos.x, y - pointerStartPos.y);
+
+      if (!pointerStartPos.moved && dist > 10 && pointerStartPos.rodIdx !== null) {
+        const fromIdx = pointerStartPos.rodIdx;
+        const rod = state.rods[fromIdx];
+        if (rod && rod.length > 0) {
+          pointerStartPos.moved = true;
+          state.selectedRod = null;
+          state.hintPair = null;
+          sound.playPick();
+          state.dragging = { fromRod: fromIdx, colorId: rod[rod.length - 1], x, y, hoverRod: findRodAtPoint(x, y) };
+        }
+      }
+
+      if (state.dragging) {
+        state.dragging.x = x;
+        state.dragging.y = y;
+        state.dragging.hoverRod = findRodAtPoint(x, y);
+      }
+    });
+
+    canvas.addEventListener("pointerup", (e) => {
+      if (!pointerStartPos) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (state.dragging) {
+        const { fromRod } = state.dragging;
+        const targetRod = findRodAtPoint(x, y);
+        const dropCoords = { x: state.dragging.x, y: state.dragging.y };
+        state.dragging = null;
+
+        if (targetRod !== null && targetRod !== fromRod && canMove(fromRod, targetRod)) {
+          startBeadMove(fromRod, targetRod, dropCoords);
+        } else if (targetRod !== null && targetRod !== fromRod) {
+          sound.playError();
+          triggerShake(targetRod);
+        } else {
+          sound.playTap(440);
+        }
+      } else if (pointerStartPos.rodIdx !== null) {
+        handleRodTap(pointerStartPos.rodIdx);
+      }
+      pointerStartPos = null;
+    });
+
+    window.addEventListener("keydown", (e) => {
+      if (state.view !== "game") return;
+      if (e.key >= "1" && e.key <= "9") {
+        const idx = parseInt(e.key, 10) - 1;
+        if (idx < LEVELS[state.currentLevelIdx].rods) handleRodTap(idx);
+      } else if (e.key.toLowerCase() === "z") undoMove();
+      else if (e.key.toLowerCase() === "r") { initLevel(state.currentLevelIdx); resizeCanvas(); }
+    });
+
+    // Home Screen Listeners
+    document.getElementById("btnHomePlay").addEventListener("click", () => {
+      sound.startBGM();
+      sound.playTap(700);
+      showGameView(state.suggestedHomeLevel || 0);
+    });
+    document.getElementById("btnHomeLevels").addEventListener("click", () => {
+      sound.playTap();
+      renderLevelGrid();
+      openModal("levelModal");
+    });
+    document.getElementById("btnHomeTutorial").addEventListener("click", () => {
+      sound.playTap();
+      renderRulesBeadList();
+      openModal("tutorialModal");
+    });
+    document.getElementById("btnHomeMusic").addEventListener("click", () => sound.toggleMute());
+    document.getElementById("btnHomeDark").addEventListener("click", () => toggleDarkMode());
+
+    // Gameplay Controls
+    document.getElementById("btnBackHome").addEventListener("click", () => {
+      sound.playTap(520);
+      showHomeView();
+    });
+    document.getElementById("btnUndo").addEventListener("click", () => undoMove());
+    document.getElementById("btnHint").addEventListener("click", () => computeHint());
+    document.getElementById("btnRestart").addEventListener("click", () => {
+      sound.playTap(500);
+      initLevel(state.currentLevelIdx);
+      resizeCanvas();
+    });
+
+    document.getElementById("btnSkinToggle").addEventListener("click", () => {
+      state.visualMode = (state.visualMode + 1) % 3;
+      sound.playTap(700);
+    });
+
+    function toggleDarkMode() {
+      state.darkMode = !state.darkMode;
+      document.documentElement.classList.toggle("dark-mode", state.darkMode);
+      const icon = state.darkMode ? "☀️" : "🌙";
+      document.getElementById("darkIcon").textContent = icon;
+      document.getElementById("homeDarkIcon").textContent = icon;
+      sound.playTap(580);
+    }
+
+    document.getElementById("btnMusicToggle").addEventListener("click", () => sound.toggleMute());
+    document.getElementById("btnDarkToggle").addEventListener("click", () => toggleDarkMode());
+
+    function renderLevelGrid() {
+      const grid = document.getElementById("levelGrid");
+      grid.innerHTML = "";
+      LEVELS.forEach((lv, idx) => {
+        const best = state.clearedLevels[lv.level];
+        const isCurrent = state.view === "game" && idx === state.currentLevelIdx;
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = `ios-btn p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+          isCurrent
+            ? "bg-sky-500 text-white border-sky-400 shadow-md shadow-sky-500/25"
+            : lv.mode === "match3"
+            ? "bg-amber-500/10 border-amber-400/40 hover:bg-amber-500/20"
+            : lv.colorShift
+            ? "bg-fuchsia-500/10 border-fuchsia-400/40 hover:bg-fuchsia-500/20"
+            : best
+            ? "bg-emerald-500/10 border-emerald-400/40 hover:bg-emerald-500/20"
+            : "bg-white/60 dark:bg-slate-800/60 border-slate-300/50 dark:border-slate-700 hover:bg-white"
+        }`;
+        const tag = best ? "⭐⭐⭐" : lv.mode === "match3" ? `💥 ${lv.targetClears}排` : lv.colorShift ? "🌈 變色" : "🏛️ 經典";
+        card.innerHTML = `
+          <div class="flex items-center justify-between w-full">
+            <span class="font-extrabold text-sm">Level ${lv.level}</span>
+            <span class="text-[10px] font-bold">${tag}</span>
+          </div>
+          <div class="text-[11px] mt-1 opacity-90 font-medium">${lv.note}</div>
+        `;
+        card.addEventListener("click", () => {
+          sound.startBGM();
+          sound.playTap(660);
+          closeModal("levelModal");
+          showGameView(idx);
+        });
+        grid.appendChild(card);
+      });
+    }
+
+    function openModal(id) {
+      const m = document.getElementById(id);
+      m.classList.remove("hidden");
+      m.classList.add("flex");
+    }
+
+    function closeModal(id) {
+      const m = document.getElementById(id);
+      m.classList.add("hidden");
+      m.classList.remove("flex");
+    }
+
+    document.getElementById("btnLevels").addEventListener("click", () => {
+      sound.playTap();
+      renderLevelGrid();
+      openModal("levelModal");
+    });
+    document.getElementById("btnCloseLevels").addEventListener("click", () => closeModal("levelModal"));
+    document.getElementById("btnResetProgress").addEventListener("click", () => {
+      state.clearedLevels = {};
+      saveProgress();
+      renderLevelGrid();
+      updateHomeSummary();
+    });
+
+    document.getElementById("btnTutorial").addEventListener("click", () => {
+      sound.playTap();
+      renderRulesBeadList();
+      openModal("tutorialModal");
+    });
+    document.getElementById("btnCloseTutorial").addEventListener("click", () => closeModal("tutorialModal"));
+    document.getElementById("btnStartFromTutorial").addEventListener("click", () => {
+      sound.playTap(720);
+      closeModal("tutorialModal");
+      if (state.view === "home") showGameView(state.suggestedHomeLevel || 0);
+    });
+
+    function showVictoryModal(isTimeout = false) {
+      const cfg = LEVELS[state.currentLevelIdx];
+      const nextCfg = LEVELS[Math.min(LEVELS.length - 1, state.currentLevelIdx + 1)];
+      const isFinal = (cfg.level === 22 && !isTimeout);
+      const subEl = document.getElementById("winSubMessage");
+
+      if (isTimeout) {
+        document.getElementById("winLevelLabel").textContent = "TIME UP ・ LEVEL 22";
+        document.getElementById("winHeadline").textContent = "超過 10 秒未消除！";
+        document.getElementById("winEmojiBadge").textContent = "⏱️";
+        document.getElementById("winStars").textContent = `${state.clearsCount} / ${cfg.targetClears} 排`;
+        subEl.classList.add("hidden");
+        document.getElementById("winMoves").textContent = `${state.clearsCount} 排`;
+        document.getElementById("winNextSpec").textContent = "10 秒內須消 1 排";
+        document.getElementById("btnNextLevel").textContent = "返回首頁 🏠";
+        openModal("victoryModal");
+        return;
+      }
+
+      document.getElementById("winLevelLabel").textContent = isFinal ? "ALL 22 LEVELS CLEARED" : `LEVEL ${cfg.level} CLEARED`;
+      document.getElementById("winHeadline").textContent = isFinal ? "恭喜全破！煙火慶祝！" : "過關達成！";
+      document.getElementById("winEmojiBadge").textContent = isFinal ? "🎆" : "🏆";
+      if (isFinal) subEl.classList.remove("hidden");
+      else subEl.classList.add("hidden");
+
+      document.getElementById("winMoves").textContent = cfg.mode === "match3" ? `消 ${state.clearsCount} 排` : `${state.moves} 步`;
+      document.getElementById("winStars").textContent = "⭐⭐⭐";
+      document.getElementById("winNextSpec").textContent = isFinal ? "🎉 全 22 關完成" : `Level ${nextCfg.level}`;
+      document.getElementById("btnNextLevel").textContent = isFinal ? "返回首頁 🏠" : "下一關 ➔";
+      openModal("victoryModal");
+    }
+
+    document.getElementById("btnReplayLevel").addEventListener("click", () => {
+      closeModal("victoryModal");
+      initLevel(state.currentLevelIdx);
+      resizeCanvas();
+    });
+
+    document.getElementById("btnNextLevel").addEventListener("click", () => {
+      closeModal("victoryModal");
+      if (state.levelLost || state.currentLevelIdx >= LEVELS.length - 1) showHomeView();
+      else { initLevel(state.currentLevelIdx + 1); resizeCanvas(); }
+    });
+
+    window.addEventListener("resize", () => { if (state.view === "game") resizeCanvas(); });
+    window.addEventListener("load", () => {
+      renderHomeHeroCanvas();
+      updateHomeSummary();
+      initLevel(0);
+      requestAnimationFrame(renderFrame);
+    });
+  </script>
+</body>
+</html>
